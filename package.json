@@ -1,0 +1,26 @@
+{
+  "name": "discord-bot-v3",
+  "version": "1.0.0",
+  "description": "A multipurpose Discord Bot for Code Network",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codenetwork/discord-bot-v3.git"
+  },
+  "author": "Code Network",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codenetwork/discord-bot-v3/issues"
+  },
+  "homepage": "https://github.com/codenetwork/discord-bot-v3#readme",
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "eslint": "^9.7.0"
+  }
+}

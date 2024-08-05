@@ -2,6 +2,11 @@
 
 This is the latest and greatest generation of Code Network's Discord Bot. This aims to provide some features to enhance our online community, and is open to contributions from our wider community.
 
+## Note for Collaborators
+If you would like to add some features to the bot, please create a branch first and then commit your code to your new branch.
+
+After you have finished working on the branch and if you would like your code reviewed, please create a pull request to merge the code from your branch into the `main` branch.
+
 ## Working on the Bot
 
 ### Getting Started on the Project

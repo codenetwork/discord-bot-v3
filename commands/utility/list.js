@@ -5,16 +5,22 @@ module.exports = {
 		.setName('list')
 		.setDescription('Lists all of the CN executives.'),
 	async execute(interaction) {
-		let memberArray = interaction.guild.roles.cache.get('1267402048580620378').members.map(m=>m.user.tag);
-		console.log(memberArray);
+		let memberArray = interaction.guild.roles.cache.get('1267402048580620378').members.map(m=>m.displayName);
 
 		let memberPersons = "";
 
-		memberArray.forEach(element => {
-			console.log(element.toString());
+		memberArray.forEach(element =>
+		{
 			memberPersons +=element.toString();
 			memberPersons += "   ";
 		});
+
+		if (memberArray.length == 0) {
+			let errorMessage = "ERROR. Server members not found.";
+			console.log(errorMessage);
+			await interaction.reply(errorMessage);
+			return
+		}
 
 		await interaction.reply(memberPersons);
 	},

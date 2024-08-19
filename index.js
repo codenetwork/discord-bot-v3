@@ -47,8 +47,6 @@ client.on(Events.InteractionCreate, async interaction => {
 
 	//Command autocomplete handling.
 	else if (interaction.isAutocomplete()) {
-		//const command = client.commands.get(interaction.commandName);
-
 		if (!command) {
 			console.error(`No command matching ${interaction.commandName} was found.`);
 			return;
@@ -56,12 +54,6 @@ client.on(Events.InteractionCreate, async interaction => {
 
 		await command.autocomplete(interaction);
 	}
-
-		//
-
-
-
-	
 });
 
 // When the client is ready, run this code (only once).

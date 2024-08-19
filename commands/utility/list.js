@@ -1,3 +1,5 @@
+//*Requires "PRESENCE INTENT" in the Discord Developer Portal to be enabled for full functionality.
+
 const { SlashCommandBuilder } = require("discord.js");
 
 module.exports = {
@@ -7,7 +9,17 @@ module.exports = {
 		.addStringOption(option =>
             option.setName("role")
 				.setDescription("Options: \"execs\", \"mods\", and \"vets\".")
+				.setAutocomplete(true)
 				.setRequired(true)),
+	
+	async autocomplete(interaction) {
+		const focusedValue = interaction.options.getFocused();
+		const choices = ["execs", "mods", "vets"];
+		const filtered = choices.filter(choice => choice.startsWith(focusedValue));
+		await interaction.respond(
+			filtered.map(choice => ({ name: choice, value: choice })),
+		);
+	},
 
 	async execute(interaction) {
 		//VARIABLES

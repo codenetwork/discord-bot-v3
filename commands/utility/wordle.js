@@ -34,6 +34,8 @@ async function sendResult(interaction, guessLeft, correctWord, prevNote = "") {
       // console.log(collected);
       // console.log(collected.first());
       // console.log(message.length);
+      message = message.trim();
+      message = message.toLowerCase();
       if (message.length != 5) {
         sendResult(interaction, guessLeft, correctWord, "Answer must be of length 5\n");
       }

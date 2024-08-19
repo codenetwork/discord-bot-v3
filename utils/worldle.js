@@ -1,14 +1,20 @@
 require("./utils");
+const { debug } = require("console");
 const fs = require("fs");
 
-let array = [];
+let wordArray = [];
 fs.readFile('list\\wordle-nyt-words-14855.txt', function(err, data) {
     if(err) throw err;
-    array = data.toString().split("\n");
+    wordArray = data.toString().split("\n");
+    for (let i = 0; i < wordArray.length; i++) {
+      wordArray[i] = wordArray[i].trim();
+      wordArray[i] = wordArray[i].substring(0,5);
+    }
 });
 
+
 function GetWordle() {
-  let randomWord = array.random();
+  let randomWord = wordArray.random();
   return randomWord;
 }
 
@@ -36,6 +42,7 @@ function checkGuess (rightGuessString, guessString) {
   }
   // Only right words, wrong position left
   for (let i = 0; i < 5; i++) {
+    if (currentGuess[i] === rightGuess[i]) continue;
     let letterPosition = rightGuess.indexOf(currentGuess[i])
     let letterPositionDuplicate = rightGuess.indexOf(rightGuessDuplicate[i])
     // Not enough correct characters
@@ -54,7 +61,8 @@ function checkGuess (rightGuessString, guessString) {
   * @return {bool}
   */
 function checkExist(guessString) {
-  return array.includes(guessString);
+  let guess = guessString.toString();
+  return wordArray.includes(guess);
 }
 
 module.exports = { GetWordle, checkGuess, checkExist }

@@ -2,6 +2,11 @@
 
 This is the latest and greatest generation of Code Network's Discord Bot. This aims to provide some features to enhance our online community, and is open to contributions from our wider community.
 
+## Note for Collaborators
+If you would like to add some features to the bot, please create a branch first and then commit your code to your new branch.
+
+After you have finished working on the branch and if you would like your code reviewed, please create a pull request to merge the code from your branch into the `main` branch.
+
 ## Working on the Bot
 
 ### Getting Started on the Project
@@ -17,6 +22,7 @@ If you wish to test the bot, you will need to create one under your own Discord 
 4. Click on **General Information**, and then click **Copy** under Application ID. Paste this in the `.env` file next to `CLIENT_ID`
 5. If you haven't already, enable Developer Mode in your Discord (by going to User Settings --> Advanced --> Developer Mode, click on it to make it green)
 6. Next, right click on your server name near the top-right of your screen, then left-click on **Copy Server ID** and paste this next to `GUILD_ID`
+7. Be sure to enable **MESSAGE CONTENT INTENT**
 
 To add the bot to your own server:
 1. Click on **OAuth2** on the left menu.

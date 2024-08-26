@@ -31,13 +31,13 @@ module.exports = {
 		switch (role.value.toString().toLowerCase())
 		{
 			case "execs":
-				memberArray = interaction.guild.roles.cache.get("1267402048580620378").members.map(m=>m.displayName);    //CN executive role ID: 349872786241617920
+				memberArray = interaction.guild.roles.cache.get("349872786241617920").members.map(m=>m.displayName);
 				break;
 			case "mods":
-				memberArray = interaction.guild.roles.cache.get("1269948580022452275").members.map(m=>m.displayName);    //CN moderators role ID: 349872786241617920
+				memberArray = interaction.guild.roles.cache.get("349872786241617920").members.map(m=>m.displayName);
 				break;
 			case "vets":
-				memberArray = interaction.guild.roles.cache.get("1269945736993181780").members.map(m=>m.displayName);    //CN veterans role ID: 349872786241617920
+				memberArray = interaction.guild.roles.cache.get("349872786241617920").members.map(m=>m.displayName);
 				break;
 			default:
 				break;

@@ -8,7 +8,7 @@ module.exports = {
 		.setDescription("Lists some members of the CN discord based on their role.")
 		.addStringOption(option =>
             option.setName("role")
-				.setDescription("Options: \"execs\", \"mods\", and \"vets\".")
+				.setDescription("Enter the role name.")
 				.setAutocomplete(true)
 				.setRequired(true)),
 	
@@ -28,18 +28,23 @@ module.exports = {
 	async execute(interaction) {
 		//VARIABLES
 		let memberArray = [];
+		let stringLength;
 		let role = interaction.options.get("role");
-		let memberPersons = "";
+		let memberPersons = "Members with the \"" + role.value + "\" role: ";
 
 		//Enables auto-complete of roles in command.
-		memberArray = interaction.guild.roles.cache.find(r=>r.name == role.value.toString()).members.map(m=>m.displayName);
+		memberArray = interaction.guild.roles.cache.find(r=>r.name.toLowerCase() == role.value.toString().toLowerCase()).members.map(m=>m.displayName);
 
 		//for-each statement that converts the array of server members into a string.
 		memberArray.forEach(element =>
 		{
 			memberPersons +=element.toString();
-			memberPersons += "   ";
+			memberPersons += ", ";
 		});
+
+		//End of string formatting.
+		memberPersons = memberPersons.slice(0, -2);
+		memberPersons += ".";
 
 		//if statement for error handling.
 		if (memberArray.length == 0) {

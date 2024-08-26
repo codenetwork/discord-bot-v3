@@ -13,9 +13,13 @@ module.exports = {
 				.setRequired(true)),
 	
 	async autocomplete(interaction) {
-		const focusedValue = interaction.options.getFocused();
-		const choices = ["execs", "mods", "vets"];
-		const filtered = choices.filter(choice => choice.startsWith(focusedValue));
+		const focusedValue = interaction.options.getFocused().toLowerCase();
+
+		//Get roles from server.
+		const choices = Array.from(interaction.guild.roles.cache.map(m=>m.name));
+
+		//Setup role list for auto-complete.
+		const filtered = choices.filter(choice => choice.toLowerCase().startsWith(focusedValue));
 		await interaction.respond(
 			filtered.map(choice => ({ name: choice, value: choice })),
 		);
@@ -26,22 +30,9 @@ module.exports = {
 		let memberArray = [];
 		let role = interaction.options.get("role");
 		let memberPersons = "";
-		
-		//switch statement that decides what role to get based on input.
-		switch (role.value.toString().toLowerCase())
-		{
-			case "execs":
-				memberArray = interaction.guild.roles.cache.get("349872786241617920").members.map(m=>m.displayName);
-				break;
-			case "mods":
-				memberArray = interaction.guild.roles.cache.get("349872786241617920").members.map(m=>m.displayName);
-				break;
-			case "vets":
-				memberArray = interaction.guild.roles.cache.get("349872786241617920").members.map(m=>m.displayName);
-				break;
-			default:
-				break;
-		}
+
+		//Enables auto-complete of roles in command.
+		memberArray = interaction.guild.roles.cache.find(r=>r.name == role.value.toString()).members.map(m=>m.displayName);
 
 		//for-each statement that converts the array of server members into a string.
 		memberArray.forEach(element =>

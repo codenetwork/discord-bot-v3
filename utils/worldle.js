@@ -44,13 +44,14 @@ function checkGuess (rightGuessString, guessString) {
   for (let i = 0; i < 5; i++) {
     if (currentGuess[i] === rightGuess[i]) continue;
     let letterPosition = rightGuess.indexOf(currentGuess[i])
-    let letterPositionDuplicate = rightGuess.indexOf(rightGuessDuplicate[i])
+    let letterPositionDuplicate = rightGuessDuplicate.indexOf(currentGuess[i])
     // Not enough correct characters
     if (letterPositionDuplicate === -1 && letterPosition != -1) {
       ret[i] = currentGuess[i];
     }
     else if (letterPosition != -1) {
       ret[i] = `__${currentGuess[i]}__`;
+      rightGuessDuplicate[letterPositionDuplicate] = "#";
     }
   }
   return ret.join(" ");

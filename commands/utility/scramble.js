@@ -3,35 +3,35 @@ const { SlashCommandBuilder, PermissionsBitField, Interaction } = require('disco
 const { GetRandom, GetScramble } = require("../../utils/scramble.js");
 
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('scramble')
-		.setDescription('word scramble game'),
+  data: new SlashCommandBuilder()
+    .setName('scramble')
+    .setDescription('word scramble game'),
 
   /**
-  * @param {Interaction} interaction The date
+  * @param {Interaction} interaction
   */
-	async execute(interaction) {
+  async execute(interaction) {
     await interaction.deferReply();
     let randomWord = GetRandom();
     let shuffled = GetScramble(randomWord);
     sendResult(interaction, randomWord, shuffled, 0);
-	},
+  },
 };
-  /**
-  * @param {Interaction} interaction The date
-  * @param {string} correctWord
-  * @param {string} shuffled
-  * @param {number} hintCount
-  */
+/**
+* @param {Interaction} interaction
+* @param {string} correctWord
+* @param {string} shuffled
+* @param {number} hintCount
+*/
 async function sendResult(interaction, correctWord, shuffled, hintCount = 0, prevNote = "") {
   let hintedMessage = ""
   if (hintCount > 0) {
-    hintedWord = correctWord.substring(0,hintCount);
+    hintedWord = correctWord.substring(0, hintCount);
     hintedMessage = `\nHint: ${hintedWord}`;
   }
   await interaction.followUp(`${prevNote}The shuffled word is: ${shuffled}${hintedMessage}\nInput your guess (Or "h" for hints)`);
   const filter = (m) => m.author.id == interaction.user.id
-  interaction.channel.awaitMessages({ filter: filter, max: 1, time: 30_000, errors: ['time'],  })
+  interaction.channel.awaitMessages({ filter: filter, max: 1, time: 30_000, errors: ['time'], })
     .then(collected => {
       let message = collected.first().content;
       message = message.trim();

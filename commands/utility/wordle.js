@@ -3,24 +3,24 @@ const { SlashCommandBuilder, PermissionsBitField, Interaction } = require('disco
 const { GetWordle, checkGuess, checkExist } = require("../../utils/worldle.js");
 
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('wordle')
-		.setDescription('worldle game'),
+  data: new SlashCommandBuilder()
+    .setName('wordle')
+    .setDescription('worldle game'),
 
   /**
-  * @param {Interaction} interaction The date
+  * @param {Interaction} interaction
   */
-	async execute(interaction) {
+  async execute(interaction) {
     await interaction.deferReply();
     let randomWord = GetWordle();
     sendResult(interaction, 6, randomWord);
-	},
+  },
 };
-  /**
-  * @param {Interaction} interaction The date
-  * @param {Number} guessLeft
-  * @param {string} correctWord
-  */
+/**
+* @param {Interaction} interaction
+* @param {Number} guessLeft
+* @param {string} correctWord
+*/
 async function sendResult(interaction, guessLeft, correctWord, prevNote = "") {
   if (guessLeft == 0) {
     await interaction.followUp(`Out of guesses\n${correctWord} is the correct answer!`);
@@ -28,7 +28,7 @@ async function sendResult(interaction, guessLeft, correctWord, prevNote = "") {
   }
   await interaction.followUp(`${prevNote}${guessLeft} guess left. Input your guess`);
   const filter = (m) => m.author.id == interaction.user.id
-  interaction.channel.awaitMessages({ filter: filter, max: 1, time: 300_000, errors: ['time'],  })
+  interaction.channel.awaitMessages({ filter: filter, max: 1, time: 300_000, errors: ['time'], })
     .then(collected => {
       let message = collected.first().content;
       // console.log(collected);

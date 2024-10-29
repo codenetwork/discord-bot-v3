@@ -4,11 +4,17 @@ const fs = require("fs");
 
 let wordArray = [];
 fs.readFile('list\\wordle-nyt-words-14855.txt', function(err, data) {
-    if(err) throw err;
-    wordArray = data.toString().split("\n");
-    for (let i = 0; i < wordArray.length; i++) {
-      wordArray[i] = wordArray[i].trim();
-      wordArray[i] = wordArray[i].substring(0,5);
+    if(err) {
+        fs.readFile('list/wordle-nyt-words-14855.txt', function(err, data) {
+            if (err) {
+                throw err;
+            }
+            wordArray = data.toString().split("\n");
+            for (let i = 0; i < wordArray.length; i++) {
+              wordArray[i] = wordArray[i].trim();
+              wordArray[i] = wordArray[i].substring(0,5);
+            }
+        }
     }
 });
 

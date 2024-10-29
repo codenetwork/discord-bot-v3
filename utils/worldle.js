@@ -14,7 +14,7 @@ fs.readFile('list\\wordle-nyt-words-14855.txt', function(err, data) {
               wordArray[i] = wordArray[i].trim();
               wordArray[i] = wordArray[i].substring(0,5);
             }
-        }
+        })
     }
 });
 

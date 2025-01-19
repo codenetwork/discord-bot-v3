@@ -2,15 +2,16 @@
 
 This is the latest and greatest generation of Code Network's Discord Bot. This aims to provide some features to enhance our online community, and is open to contributions from our wider community.
 
-## Note for Collaborators
-If you would like to add some features to the bot, please create a branch first and then commit your code to your new branch.
+## How do I contribute?
 
-After you have finished working on the branch and if you would like your code reviewed, please create a pull request to merge the code from your branch into the `main` branch.
+If you would like to contribute some code to this project, we invite you to [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository, commit changes to your fork, and then open a pull request.
+
+[Click here to fork the repository!](https://github.com/codenetwork/discord-bot-v3/fork)
 
 ## Working on the Bot
 
 ### Getting Started on the Project
-1. First, clone this repository to your computer.
+1. First, create a fork, and then clone the repository fork to your computer.
 2. Run `npm install` to get the latest dependencies
 
 ### Adding Environment Variables

@@ -8,6 +8,8 @@ If you would like to contribute some code to this project, we invite you to [for
 
 [Click here to fork the repository!](https://github.com/codenetwork/discord-bot-v3/fork)
 
+If you are looking for some ideas of features to add or bugs that we need fixed, take a look at the [issues page](https://github.com/codenetwork/discord-bot-v3/issues). You are most welcome to contribute to the discussion of any issues, and these will be consistently monitored by the projects team.
+
 ## Working on the Bot
 
 ### Getting Started on the Project

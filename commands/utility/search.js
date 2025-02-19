@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('search')
-        .setDescription('search for user')
+        .setDescription('Searches for a user and prints their roles')
 
 
         .addStringOption(option =>
@@ -31,6 +31,6 @@ module.exports = {
         }
         const roles = member.roles.cache.map(r => r.name).join(', ')
 
-        await interaction.reply(roles);
+        await interaction.reply(`User **${member}** has roles: ` + roles);
     },
 };

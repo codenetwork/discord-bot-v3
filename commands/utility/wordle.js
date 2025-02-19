@@ -2,6 +2,8 @@
 const { SlashCommandBuilder, PermissionsBitField, Interaction } = require('discord.js');
 const { GetWordle, checkGuess, checkExist } = require("../../utils/worldle.js");
 
+const maxGuess = 6;
+
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('wordle')
@@ -13,7 +15,7 @@ module.exports = {
 	async execute(interaction) {
     await interaction.deferReply();
     let randomWord = GetWordle();
-    sendResult(interaction, 6, randomWord);
+    sendResult(interaction, maxGuess, randomWord);
 	},
 };
   /**
@@ -26,7 +28,11 @@ async function sendResult(interaction, guessLeft, correctWord, prevNote = "") {
     await interaction.followUp(`Out of guesses\n${correctWord} is the correct answer!`);
     return;
   }
-  await interaction.followUp(`${prevNote}${guessLeft} guess left. Input your guess`);
+  if (guessLeft == maxGuess) {
+    await interaction.followUp("Welcome to Wordle! **Enter a five letter guess to start!**\n\n*Guess Result Legend:*\n- b: invalid letter\n- **b**: valid letter, wrong position\n- __***b***__: valid letter, correct position")
+  } else {
+    await interaction.followUp(`${prevNote}${guessLeft} guess left. Input your guess`);
+  }
   const filter = (m) => m.author.id == interaction.user.id
   interaction.channel.awaitMessages({ filter: filter, max: 1, time: 300_000, errors: ['time'],  })
     .then(collected => {

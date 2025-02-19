@@ -3,18 +3,12 @@ const { debug } = require("console");
 const fs = require("fs");
 
 let wordArray = [];
-fs.readFile('list\\wordle-nyt-words-14855.txt', function(err, data) {
-    if(err) {
-        fs.readFile('list/wordle-nyt-words-14855.txt', function(err, data) {
-            if (err) {
-                throw err;
-            }
-            wordArray = data.toString().split("\n");
-            for (let i = 0; i < wordArray.length; i++) {
-              wordArray[i] = wordArray[i].trim();
-              wordArray[i] = wordArray[i].substring(0,5);
-            }
-        })
+fs.readFile('list/wordle-nyt-words-14855.txt', function(err, data) {
+    if(err) throw err;
+    wordArray = data.toString().split("\n");
+    for (let i = 0; i < wordArray.length; i++) {
+      wordArray[i] = wordArray[i].trim();
+      wordArray[i] = wordArray[i].substring(0,5);
     }
 });
 
@@ -50,13 +44,14 @@ function checkGuess (rightGuessString, guessString) {
   for (let i = 0; i < 5; i++) {
     if (currentGuess[i] === rightGuess[i]) continue;
     let letterPosition = rightGuess.indexOf(currentGuess[i])
-    let letterPositionDuplicate = rightGuess.indexOf(rightGuessDuplicate[i])
+    let letterPositionDuplicate = rightGuessDuplicate.indexOf(currentGuess[i])
     // Not enough correct characters
     if (letterPositionDuplicate === -1 && letterPosition != -1) {
       ret[i] = currentGuess[i];
     }
     else if (letterPosition != -1) {
-      ret[i] = `__${currentGuess[i]}__`;
+      ret[i] = `**${currentGuess[i]}**`;
+      rightGuessDuplicate[letterPositionDuplicate] = "#";
     }
   }
   return ret.join(" ");

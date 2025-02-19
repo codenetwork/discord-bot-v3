@@ -3,7 +3,7 @@ const { debug } = require("console");
 const fs = require("fs");
 
 let wordArray = [];
-fs.readFile('list\\wordlist.10000.txt', function(err, data) {
+fs.readFile('list/wordlist.10000.txt', function(err, data) {
     if(err) throw err;
     wordArray = data.toString().split("\n");
     for (let i = 0; i < wordArray.length; i++) {

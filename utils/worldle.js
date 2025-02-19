@@ -3,7 +3,7 @@ const { debug } = require("console");
 const fs = require("fs");
 
 let wordArray = [];
-fs.readFile('list\\wordle-nyt-words-14855.txt', function(err, data) {
+fs.readFile('list/wordle-nyt-words-14855.txt', function(err, data) {
     if(err) throw err;
     wordArray = data.toString().split("\n");
     for (let i = 0; i < wordArray.length; i++) {
@@ -50,7 +50,7 @@ function checkGuess (rightGuessString, guessString) {
       ret[i] = currentGuess[i];
     }
     else if (letterPosition != -1) {
-      ret[i] = `__${currentGuess[i]}__`;
+      ret[i] = `**${currentGuess[i]}**`;
       rightGuessDuplicate[letterPositionDuplicate] = "#";
     }
   }

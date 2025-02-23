@@ -1,3 +1,5 @@
+![Code Network Discord Bot](.github/assets/banner.svg)
+
 # Code Network Discord Bot v3
 
 This is the latest and greatest generation of Code Network's Discord Bot. This aims to provide some features to enhance our online community, and is open to contributions from our wider community.

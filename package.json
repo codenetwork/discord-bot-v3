@@ -4,6 +4,7 @@
   "description": "A multipurpose Discord Bot for Code Network",
   "main": "index.js",
   "scripts": {
+    "start": "node deploy-commands.js && node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

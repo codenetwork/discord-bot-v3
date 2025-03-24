@@ -8,7 +8,7 @@ const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildPresences] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildVoiceStates] });
 
 client.commands = new Collection();
 

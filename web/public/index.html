@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Bot Admin Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fab fa-discord"></i>
+                    <span>Bot Admin</span>
+                </div>
+                <button class="toggle-btn" id="toggleSidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    <li class="active" data-target="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </li>
+                    <li data-target="commands">
+                        <i class="fas fa-terminal"></i>
+                        <span>Commands</span>
+                    </li>
+                    <li data-target="roles">
+                        <i class="fas fa-server"></i>
+                        <span>Roles</span>
+                    </li>
+                    <li data-target="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </li>
+                    <li data-target="logs">
+                        <i class="fas fa-list"></i>
+                        <span>Logs</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user">
+                    <div class="avatar">
+                        <img src="https://via.placeholder.com/40" alt="User Avatar">
+                        <span class="status online"></span>
+                    </div>
+                    <div class="info">
+                        <span class="name">Admin User</span>
+                        <span class="role">Administrator</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <main class="content">
+            <header>
+                <div class="search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <div class="actions">
+                    <button class="btn-notification">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">5</span>
+                    </button>
+                    <div class="divider"></div>
+                    <button class="btn-user">
+                        <i class="fas fa-user"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <section id="dashboard" class="page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Bot performance overview</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Servers</h3>
+                            <h2>42</h2>
+                            <p><i class="fas fa-arrow-up"></i> 8% from last week</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Users</h3>
+                            <h2 id="user-count">...</h2>
+                            <p><i class="fas fa-arrow-up"></i> 12% from last week</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-terminal"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Commands</h3>
+                            <h2>1,253</h2>
+                            <p><i class="fas fa-arrow-up"></i> 5% from last week</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Uptime</h3>
+                            <h2>99.8%</h2>
+                            <p>Last restart: 7d ago</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Command Usage</h3>
+                            <div class="chart-actions">
+                                <button class="btn-filter">Today</button>
+                                <button class="btn-filter">Week</button>
+                                <button class="btn-filter active">Month</button>
+                                <button class="btn-filter">Year</button>
+                            </div>
+                        </div>
+                        <div class="chart">
+                            <div class="chart-placeholder">
+                                <!-- Chart will be rendered here by JS -->
+                                <div class="placeholder-text">Command usage analytics chart</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row-cards">
+                    <div class="card recent-activity">
+                        <h3>Recent Activity</h3>
+                        <ul class="activity-list">
+                            <li>
+                                <div class="activity-icon red">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Bot disconnected from server "Gaming HQ"</p>
+                                    <span class="time">5 minutes ago</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon green">
+                                    <i class="fas fa-plus-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Bot added to server "Minecraft Hub"</p>
+                                    <span class="time">1 hour ago</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon blue">
+                                    <i class="fas fa-wrench"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Settings updated by Admin</p>
+                                    <span class="time">3 hours ago</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon orange">
+                                    <i class="fas fa-bullhorn"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Announcement sent to all servers</p>
+                                    <span class="time">1 day ago</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card popular-commands">
+                        <h3>Popular Commands</h3>
+                        <div class="command-item">
+                            <div class="command-name">/help</div>
+                            <div class="command-bar">
+                                <div class="bar" style="width: 85%"></div>
+                                <span>85%</span>
+                            </div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">/play</div>
+                            <div class="command-bar">
+                                <div class="bar" style="width: 72%"></div>
+                                <span>72%</span>
+                            </div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">/ban</div>
+                            <div class="command-bar">
+                                <div class="bar" style="width: 56%"></div>
+                                <span>56%</span>
+                            </div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-name">/weather</div>
+                            <div class="command-bar">
+                                <div class="bar" style="width: 43%"></div>
+                                <span>43%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="commands" class="page">
+                <div class="page-header">
+                    <h1>Commands</h1>
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> New Command</button>
+                </div>
+                <div class="commands-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Usage</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>/help</td>
+                                <td>Shows all available commands</td>
+                                <td>/help [command]</td>
+                                <td><span class="badge-green">Active</span></td>
+                                <td class="actions">
+                                    <button class="icon-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="icon-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>/ban</td>
+                                <td>Bans a user from the server</td>
+                                <td>/ban @user [reason]</td>
+                                <td><span class="badge-green">Active</span></td>
+                                <td class="actions">
+                                    <button class="icon-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="icon-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>/weather</td>
+                                <td>Gets weather for a location</td>
+                                <td>/weather [location]</td>
+                                <td><span class="badge-red">Disabled</span></td>
+                                <td class="actions">
+                                    <button class="icon-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="icon-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section id="roles" class="page">
+                <div class="page-header">
+                    <h1>Roles</h1>
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> New Command</button>
+                </div>
+                <div class="commands-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                              
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- <tr>
+                                <td>/help</td>
+                                <td>Shows all available commands</td>
+                              
+                                <td><span class="badge-green">Active</span></td>
+                                <td class="actions">
+                                    <button class="icon-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="icon-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>/ban</td>
+                                <td>Bans a user from the server</td>
+                             
+                                <td><span class="badge-green">Active</span></td>
+                                <td class="actions">
+                                    <button class="icon-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="icon-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>/weather</td>
+                                <td>Gets weather for a location</td>
+                                
+                                <td><span class="badge-red">Disabled</span></td>
+                                <td class="actions">
+                                    <button class="icon-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="icon-btn"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr> -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+           
+            
+            <section id="settings" class="page">
+                <div class="page-header">
+                    <h1>Settings</h1>
+                </div>
+                <div class="settings-container">
+                    <div class="settings-sidebar">
+                        <ul>
+                            <li class="active">General</li>
+                            <li>Permissions</li>
+                            <li>Notifications</li>
+                            <li>API Keys</li>
+                            <li>Appearance</li>
+                        </ul>
+                    </div>
+                    <div class="settings-content">
+                        <div class="settings-group">
+                            <h2>General Settings</h2>
+                            
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3>Bot Status</h3>
+                                    <p>Set the bot's online status and activity.</p>
+                                </div>
+                                <div class="setting-control">
+                                    <select class="form-control">
+                                        <option>Online</option>
+                                        <option>Idle</option>
+                                        <option>Do Not Disturb</option>
+                                        <option>Invisible</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3>Command Prefix</h3>
+                                    <p>Set the character that begins each command.</p>
+                                </div>
+                                <div class="setting-control">
+                                    <input type="text" class="form-control" value="/" placeholder="Prefix">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3>Delete Command Messages</h3>
+                                    <p>Automatically delete command messages after execution.</p>
+                                </div>
+                                <div class="setting-control">
+                                    <label class="toggle">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3>Default Timeout</h3>
+                                    <p>Set the default command timeout in seconds.</p>
+                                </div>
+                                <div class="setting-control">
+                                    <input type="number" class="form-control" value="30" min="1" max="120">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-buttons">
+                            <button class="btn btn-primary">Save Changes</button>
+                            <button class="btn btn-outline">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="logs" class="page">
+                <div class="page-header">
+                    <h1>Logs</h1>
+                    <div class="page-actions">
+                        <button class="btn btn-outline"><i class="fas fa-download"></i> Export</button>
+                        <select class="form-control">
+                            <option>All Logs</option>
+                            <option>Errors</option>
+                            <option>Commands</option>
+                            <option>System</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="logs-container">
+                    <div class="log-entry error">
+                        <div class="log-time">2023-08-12 14:32:15</div>
+                        <div class="log-level error">ERROR</div>
+                        <div class="log-message">Failed to connect to voice channel in server "Gaming HQ" - Missing permissions</div>
+                    </div>
+                    <div class="log-entry info">
+                        <div class="log-time">2023-08-12 14:30:22</div>
+                        <div class="log-level info">INFO</div>
+                        <div class="log-message">User "GameMaster#1234" executed command "/play despacito"</div>
+                    </div>
+                    <div class="log-entry warning">
+                        <div class="log-time">2023-08-12 14:28:56</div>
+                        <div class="log-level warning">WARNING</div>
+                        <div class="log-message">API rate limit reached for OpenWeather API - retrying in 60 seconds</div>
+                    </div>
+                    <div class="log-entry info">
+                        <div class="log-time">2023-08-12 14:25:02</div>
+                        <div class="log-level info">INFO</div>
+                        <div class="log-message">Bot joined server "Minecraft Hub" (ID: 928391029301)</div>
+                    </div>
+                    <div class="log-entry info">
+                        <div class="log-time">2023-08-12 14:20:18</div>
+                        <div class="log-level info">INFO</div>
+                        <div class="log-message">User "AdminUser#5678" updated bot settings</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

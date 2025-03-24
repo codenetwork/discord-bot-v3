@@ -22,7 +22,8 @@
     "axios": "^1.8.3",
     "cheerio": "^1.0.0",
     "discord.js": "^14.15.3",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "eslint": "^9.7.0"

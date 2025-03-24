@@ -4,8 +4,10 @@ const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
 require('dotenv').config();
 const token = process.env.DISCORD_TOKEN;
-const clientId = process.env.CLIENT_ID;
-const guildId = process.env.GUILD_ID;
+const portal = require('./web');
+const express = require('express');
+const app = express();
+const port = 3000;
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildVoiceStates] });
@@ -65,3 +67,12 @@ client.once(Events.ClientReady, readyClient => {
 
 // Log in to Discord with your client's token
 client.login(token);
+
+
+app.use('/admin', express.static('./web/public'));
+app.use('/api', portal);
+
+
+app.listen(port, () => {
+	console.log(`Example app listening at http://localhost:${port}`);
+});

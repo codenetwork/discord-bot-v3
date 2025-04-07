@@ -1,9 +1,12 @@
-const { SlashCommandBuilder, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, ChannelType, PermissionOverwrites } = require('discord.js');
 
 // TODO:
 // 1. Create categories ✅
-// 2. Create roles and assign roles
-// 3. Get player (member) ids
+// 2. Delete categories
+// 3. Create text channels
+// 4. Create roles and assign roles
+// 5. Delete roles
+// 6. Get player (member) ids
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -25,6 +28,17 @@ module.exports = {
           option
             .setName('name')
             .setDescription('Name of the category to be deleted.')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('createtextchannel')
+        .setDescription('Creates a new text channel at category "Battleship".')
+        .addStringOption((option) =>
+          option
+            .setName('name')
+            .setDescription('Name of the text channel to be created.')
             .setRequired(true)
         )
     ),
@@ -80,6 +94,31 @@ module.exports = {
           ephemeral: true,
         });
       }
+    } else if (subcommand === 'createtextchannel') {
+      const battleshipCategory = interaction.guild.channels.cache.find(
+        (channel) => channel.name === 'Battleship' && channel.type === ChannelType.GuildCategory
+      );
+
+      if (!battleshipCategory) {
+        return interaction.reply({
+          content: `Category "Battleship" not found. Please create this category first.`,
+          ephemeral: true,
+        });
+      }
+
+      const textChannelName = interaction.options.getString('name');
+
+      try {
+        const newChannel = await interaction.guild.channels.create({
+          name: textChannelName,
+          type: ChannelType.GuildText,
+          parent: battleshipCategory.id,
+          // permissionOverwrites: [
+          //   id:
+          // ]
+        });
+        return interaction.reply(`Text channel "${newChannel.name}" has been created!`);
+      } catch (error) {}
     }
   },
 };

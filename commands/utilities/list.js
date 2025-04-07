@@ -54,6 +54,10 @@ module.exports = {
 			return
 		}
 
-		await interaction.reply(memberPersons);
+		await interaction.reply(
+			{
+				content: memberPersons,
+				ephemeral: true
+			});
 	},
 };

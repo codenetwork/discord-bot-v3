@@ -2,11 +2,37 @@ const { SlashCommandBuilder, ChannelType, PermissionOverwrites } = require('disc
 
 // TODO:
 // 1. Create categories ✅
-// 2. Delete categories
-// 3. Create text channels
-// 4. Create roles and assign roles
-// 5. Delete roles
-// 6. Get player (member) ids
+// 2. Delete categories ✅
+// 3. Create text channels ✅
+// 4. Send private DMs to members
+// 5. Send private DMs with buttons to members
+// 6. Members reply to private DMs
+// 7. Create session once p2 accepts (includes validation of time, etc.)
+
+/**
+ * `sessions` type (per item)
+ * session:
+ *  {
+ *    status: "invite_pending", "invite_expired", "invite_cancelled", "board_setup", "turn_p1", "turn_p2", "finish_p1_win", "finish_p2_win",
+ *    p1:
+ *     {
+ *       "id": Member.id,
+ *       "board": [n x m],
+ *       "guesses": [n x m],
+ *       "textChannelId": Channel.i
+ *     },
+ *    p2:
+ *     {
+ *       "id": Member.id,
+ *       "board": [n x m],
+ *       "guesses": [n x m],
+ *       "textChannelId": Channel.i
+ *     },
+ *    inviteTimestamp: Date,
+ *    inviteAcceptedTimestamp: Date
+ *  }
+ *
+ */
 
 module.exports = {
   data: new SlashCommandBuilder()

@@ -48,7 +48,6 @@ When you are done with the server, terminate it (Ctrl+C).
 - QUT Shuttle Timetable
 - CN Admin Web Pannel
 - QUT Unit Information
-- Latest News
 - Discord Music Bot
 - CN Club information (Events/Memberships)
 

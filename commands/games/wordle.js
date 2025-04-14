@@ -1,3 +1,10 @@
+/**
+ * @name: wordle.js
+ * @description: Discord slash command that let's the user play a game of Wordle.
+ * @author: Thomas Le. Documentation by Anthony Choi.
+ */
+
+
 
 const { SlashCommandBuilder, PermissionsBitField, Interaction } = require('discord.js');
 const { GetWordle, checkGuess, checkExist } = require("../../utils/worldle.js");

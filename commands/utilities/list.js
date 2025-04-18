@@ -29,7 +29,7 @@ module.exports = {
 	async autocomplete(interaction)
 	{
 		const focusedValue = interaction.options.getFocused().toLowerCase();
-
+		
 		//Gets roles from server.
 		const choices = Array.from(interaction.guild.roles.cache.map(m=>m.name));
 

@@ -23,7 +23,7 @@ module.exports =
 	// Enables the command's functionality.
 	async execute(interaction)
 	{
-		response = `Here's the link to the campuses' maps: ${link}.`;
+		response = `Here's the link to QUT's campus maps: ${link}.`;
 		await interaction.reply(
 		{
 			content: response,

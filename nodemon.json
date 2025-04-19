@@ -1,0 +1,9 @@
+{
+  "restartable": "rs",
+  "verbose": true,
+  "execMap": {
+    "js": "node"
+  },
+  "ext": "js json",
+  "watch": ["index.js", "commands/", "list/", "utils/", "deploy-commands.js"]
+}

@@ -1,3 +1,11 @@
+/**
+ * @name: ping.js
+ * @description: Demo command.
+ * @author: ?
+ */
+
+
+
 const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {

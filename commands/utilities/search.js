@@ -1,3 +1,11 @@
+/**
+ * @name: search.js
+ * @description: Discord slash command that searches for a user in the Discord server and prints their roles.
+ * @author: ?
+ */
+
+
+
 const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {

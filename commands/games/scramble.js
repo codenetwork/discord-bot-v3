@@ -1,3 +1,10 @@
+/**
+ * @name: scramble.js
+ * @description: Discord slash command that let's the user play a game of Scramble.
+ * @author: Thomas Le. Documentation by Anthony Choi.
+ */
+
+
 
 const { SlashCommandBuilder, PermissionsBitField, Interaction } = require('discord.js');
 const { GetRandom, GetScramble } = require("../../utils/scramble.js");

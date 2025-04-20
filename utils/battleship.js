@@ -28,6 +28,60 @@ const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js')
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 10;
 
+async function isInviteValid(interaction, sessions, inviter, invitee) {
+  // Check if the inviter is already in an active session
+  const activeStatuses = ['invite_pending', 'board_setup', 'turn_p1', 'turn_p2'];
+  const inviterActiveSession = sessions.find(
+    (session) => session.p1.id === inviter.id && activeStatuses.includes(session.status)
+  );
+  if (inviterActiveSession) {
+    await interaction.reply({
+      content:
+        'You already have an active game or pending invite. Either finish your game or cancel your invite before inviting another player.',
+      ephemeral: MessageFlags.Ephemeral,
+    });
+    return false;
+  }
+
+  // Check if the invitee is in an active session
+  const inviteeActiveSession = sessions.find(
+    (session) => session.p1.id === invitee.id && activeStatuses.includes(session.status)
+  );
+  if (inviteeActiveSession) {
+    await interaction.reply({
+      content: `${invitee} either has an active invite or is currently in a game. Tell them to cancel their invite or finish their game!`,
+      ephemeral: MessageFlags.Ephemeral,
+    });
+    return false;
+  }
+
+  // Check if inviter is already invited by someone
+  const inviterIsInvitedSession = sessions.find(
+    (session) => session.status === 'invite_pending' && session.p2.id === inviter.id
+  );
+  if (inviterIsInvitedSession) {
+    await interaction.reply({
+      content: 'You are invited by someone, check your DMs and respond to them first!',
+      ephemeral: MessageFlags.Ephemeral,
+    });
+    return false;
+  }
+
+  // Check if invitee is already invited by someone
+  const inviteeIsInvitedSession = sessions.find(
+    (session) => session.status === 'invite_pending' && session.p2.id === invitee.id
+  );
+  if (inviteeIsInvitedSession) {
+    await interaction.reply({
+      content: `${invitee} is being invited by someone else. Unfortunately, they would have to respond to their invite first.`,
+      ephemeral: MessageFlags.Ephemeral,
+    });
+    return false;
+  }
+
+  return true;
+}
+
 function newBoard() {
   return Array(BOARD_HEIGHT)
     .fill()
@@ -160,6 +214,7 @@ function expireSession(session) {
 }
 
 module.exports = {
+  isInviteValid,
   createSession,
   sessionInit,
   denySession,

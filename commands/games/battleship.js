@@ -8,6 +8,7 @@ const {
   ButtonStyle,
 } = require('discord.js');
 const {
+  isInviteValid,
   createSession,
   sessionInit,
   denySession,
@@ -24,7 +25,8 @@ const {
 // 7. Implement central sessions list. A new session object is create the second an invite is created.
 //    Handle cases where invitation is denied or not responded (just change the status, and maybe no need
 //    to remove the session) ✅
-// 8. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
+// 8. Implement cancel invite
+// 9. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
 //      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId
 //      b. Implement text channel creation with permissions for respective players and redirect players to
 //         respective channels if possible. Or at least give them a link to their text channel.
@@ -166,50 +168,8 @@ module.exports = {
         });
       }
 
-      // Check if the inviter is already in an active session
-      const activeStatuses = ['invite_pending', 'board_setup', 'turn_p1', 'turn_p2'];
-      const inviterActiveSession = sessions.find(
-        (session) => session.p1.id === inviter.id && activeStatuses.includes(session.status)
-      );
-      if (inviterActiveSession) {
-        return await interaction.reply({
-          content:
-            'You already have an active game or pending invite. Either finish your game or cancel your invite before inviting another player.',
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-
-      // Check if the invitee is in an active session
-      const inviteeActiveSession = sessions.find(
-        (session) => session.p1.id === invitee.id && activeStatuses.includes(session.status)
-      );
-      if (inviteeActiveSession) {
-        return await interaction.reply({
-          content: `${invitee} either has an active invite or is currently in a game. Tell them to cancel their invite or finish their game!`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-
-      // Check if inviter is already invited by someone
-      const inviterIsInvitedSession = sessions.find(
-        (session) => session.status === 'invite_pending' && session.p2.id === inviter.id
-      );
-      if (inviterIsInvitedSession) {
-        return await interaction.reply({
-          content: 'You are invited by someone, check your DMs and respond to them first!',
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-
-      // Check if invitee is already invited by someone
-      const inviteeIsInvitedSession = sessions.find(
-        (session) => session.status === 'invite_pending' && session.p2.id === invitee.id
-      );
-      if (inviteeIsInvitedSession) {
-        return await interaction.reply({
-          content: `${invitee} is being invited by someone else. Unfortunately, they would have to respond to their invite first.`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
+      if (!(await isInviteValid(interaction, sessions, inviter, invitee))) {
+        return;
       }
 
       const session = createSession(sessions, inviter, invitee);

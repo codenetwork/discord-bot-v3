@@ -15,7 +15,17 @@ const {
 // 4. Send private DMs to members ✅
 // 5. Send private DMs with buttons to members ✅
 // 6. Members reply to private DMs ✅
-// 7. Create session once p2 accepts (includes validation of time, etc.)
+// 7. Implement central sessions list. A new session object is create the second an invite is created.
+//    Handle cases where invitation is denied or not responded (just change the status, and maybe no need
+//    to remove the session)
+// 8. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
+//      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId
+//      b. Implement text channel creation with permissions for respective players and redirect players to
+//         respective channels if possible. Or at least give them a link to their text channel.
+//      c. Implement utility functions for players to set their board, methods include:
+//          i. Place ship (handles which orientation, valid ship placements)
+//         ii. Finish method to indicate that they're finished (handles if all ships are placed)
+//        iii. Maybe a remove ship method to undo a ship placement.
 
 /**
  * `sessions` type (per item)
@@ -24,17 +34,17 @@ const {
  *    status: "invite_pending", "invite_expired", "invite_cancelled", "board_setup", "turn_p1", "turn_p2", "finish_p1_win", "finish_p2_win",
  *    p1:
  *     {
- *       "id": Member.id,
- *       "board": [n x m],
- *       "guesses": [n x m],
- *       "textChannelId": Channel.id
+ *       id: Member.id,
+ *       board: [n x m],
+ *       guesses: [n x m],
+ *       textChannelId: Channel.id
  *     },
  *    p2:
  *     {
- *       "id": Member.id,
- *       "board": [n x m],
- *       "guesses": [n x m],
- *       "textChannelId": Channel.id
+ *       id: Member.id,
+ *       board: [n x m],
+ *       guesses: [n x m],
+ *       textChannelId: Channel.id
  *     },
  *    inviteTimestamp: Date,
  *    inviteAcceptedTimestamp: Date

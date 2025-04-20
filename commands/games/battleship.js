@@ -3,6 +3,9 @@ const {
   ChannelType,
   PermissionOverwrites,
   MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } = require('discord.js');
 
 // TODO:
@@ -10,8 +13,8 @@ const {
 // 2. Delete categories ✅
 // 3. Create text channels ✅
 // 4. Send private DMs to members ✅
-// 5. Send private DMs with buttons to members
-// 6. Members reply to private DMs
+// 5. Send private DMs with buttons to members ✅
+// 6. Members reply to private DMs ✅
 // 7. Create session once p2 accepts (includes validation of time, etc.)
 
 /**
@@ -171,15 +174,96 @@ module.exports = {
       }
 
       try {
-        await invitee.send(`Ma nigga you've been invited by ${inviter.username}!`);
-        return interaction.reply({
-          content: `Invitation sent to ${invitee.username}.`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
+        // Build DM message
+        const accept = new ButtonBuilder()
+          .setCustomId('accept_invite')
+          .setLabel('Accept')
+          .setStyle(ButtonStyle.Success);
+
+        const deny = new ButtonBuilder()
+          .setCustomId('deny_invite')
+          .setLabel('Deny')
+          .setStyle(ButtonStyle.Danger);
+
+        const row = new ActionRowBuilder().addComponents(accept, deny);
+
+        // Try sending DM message to invitee
+        let dmMessage;
+        try {
+          dmMessage = await invitee.send({
+            content: `You've been invited by ${inviter} to play Battleship!`,
+            components: [row],
+            withResponse: true,
+          });
+
+          // Send confirmation to inviter
+          await interaction.reply({
+            content: `Invitation sent to ${invitee}.`,
+            ephemeral: MessageFlags.Ephemeral,
+          });
+        } catch (dmError) {
+          console.error('Failed to send DM: ', error);
+          return interaction.reply({
+            content: `Could not send a DM to ${invitee} They may have DMs disabled.`,
+            ephemeral: MessageFlags.Ephemeral,
+          });
+        }
+
+        let inviteeResponse;
+        try {
+          // Wait for invitee's response
+          const collectionFilter = (i) => i.user.id === invitee.id;
+
+          inviteeResponse = await dmMessage.awaitMessageComponent({
+            filter: collectionFilter,
+            time: 60_000, // 60 seconds
+          });
+        } catch (timeoutError) {
+          console.error('Invitation timed out:', timeoutError);
+
+          // Set buttons to disabled
+          accept.setDisabled(true);
+          deny.setDisabled(true);
+
+          // Tell invitee that the invitation has expired
+          await dmMessage.edit({
+            content: `You've been invited by ${inviter} to play Battleship!\nUnfortunately, you didn't respond in time.`,
+            components: [row],
+          });
+
+          // Tell inviter that the invitation has expired
+          return interaction.followUp({
+            content: `${invitee} didn't respond to the invite in time.`,
+            ephemeral: MessageFlags.Ephemeral,
+          });
+        }
+
+        // Handle invitee's response
+        if (inviteeResponse.customId === 'accept_invite') {
+          await inviteeResponse.update({
+            content: `You accepted an invite from ${inviter} to play Battleship!`,
+            components: [],
+          });
+
+          return await interaction.followUp({
+            content: `${invitee} has accepted your invite!`,
+            ephemeral: MessageFlags.Ephemeral,
+          });
+        } else if (inviteeResponse.customId === 'deny_invite') {
+          await inviteeResponse.update({
+            content: 'You denied the invite!',
+            components: [],
+          });
+
+          return await interaction.followUp({
+            content: `${invitee} has denied your invite!`,
+            ephemeral: MessageFlags.Ephemeral,
+          });
+        }
       } catch (error) {
-        console.error('Failed to send DM: ', error);
+        console.error('Unexpected error:', error);
         return interaction.reply({
-          content: `Could not send a DM to ${invitee.username} They may have DMs disabled.`,
+          content: 'An unexpected error occurred while processing the invite.',
           ephemeral: MessageFlags.Ephemeral,
         });
       }

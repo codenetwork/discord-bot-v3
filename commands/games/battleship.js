@@ -88,7 +88,7 @@ module.exports = {
       );
 
       if (existingCategory) {
-        return interaction.reply({
+        return await interaction.reply({
           content: `Category "${categoryName}" already exists!`,
           ephemeral: MessageFlags.Ephemeral,
         });
@@ -99,7 +99,7 @@ module.exports = {
           name: categoryName,
           type: ChannelType.GuildCategory,
         });
-        interaction.reply(`Category "${categoryName}" has been created!`);
+        return await interaction.reply(`Category "${categoryName}" has been created!`);
       } catch (error) {
         interaction.reply({
           content: `Failed to create category "${categoryName}" :(\n${error}`,
@@ -114,7 +114,7 @@ module.exports = {
       );
 
       if (!existingCategory) {
-        return interaction.reply({
+        return await interaction.reply({
           content: `Category "${categoryName}" does not exist!`,
           ephemeral: MessageFlags.Ephemeral,
         });
@@ -122,9 +122,9 @@ module.exports = {
 
       try {
         await existingCategory.delete();
-        return interaction.reply(`Category "${categoryName}" has been deleted!`);
+        return await interaction.reply(`Category "${categoryName}" has been deleted!`);
       } catch (error) {
-        return interaction.reply({
+        return await interaction.reply({
           content: `Failed to delete "${categoryName}" :(`,
           ephemeral: MessageFlags.Ephemeral,
         });
@@ -135,7 +135,7 @@ module.exports = {
       );
 
       if (!battleshipCategory) {
-        return interaction.reply({
+        return await interaction.reply({
           content: `Category "Battleship" not found. Please create this category first.`,
           ephemeral: MessageFlags.Ephemeral,
         });
@@ -152,7 +152,7 @@ module.exports = {
           //   id:
           // ]
         });
-        return interaction.reply(`Text channel "${newChannel.name}" has been created!`);
+        return await interaction.reply(`Text channel "${newChannel.name}" has been created!`);
       } catch (error) {}
     } else if (subcommand === 'invite') {
       const inviter = interaction.user;
@@ -243,7 +243,7 @@ module.exports = {
             ephemeral: MessageFlags.Ephemeral,
           });
         } catch (dmError) {
-          console.error('Failed to send DM: ', error);
+          console.error('Failed to send DM: ', dmError);
           return await interaction.reply({
             content: `Could not send a DM to ${invitee} They may have DMs disabled.`,
             ephemeral: MessageFlags.Ephemeral,

@@ -7,6 +7,12 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require('discord.js');
+const {
+  createSession,
+  sessionInit,
+  denySession,
+  expireSession,
+} = require('../../utils/battleship.js');
 
 // TODO:
 // 1. Create categories ✅
@@ -17,7 +23,7 @@ const {
 // 6. Members reply to private DMs ✅
 // 7. Implement central sessions list. A new session object is create the second an invite is created.
 //    Handle cases where invitation is denied or not responded (just change the status, and maybe no need
-//    to remove the session)
+//    to remove the session) ✅
 // 8. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
 //      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId
 //      b. Implement text channel creation with permissions for respective players and redirect players to
@@ -27,30 +33,7 @@ const {
 //         ii. Finish method to indicate that they're finished (handles if all ships are placed)
 //        iii. Maybe a remove ship method to undo a ship placement.
 
-/**
- * `sessions` type (per item)
- * session:
- *  {
- *    status: "invite_pending", "invite_expired", "invite_cancelled", "board_setup", "turn_p1", "turn_p2", "finish_p1_win", "finish_p2_win",
- *    p1:
- *     {
- *       id: Member.id,
- *       board: [n x m],
- *       guesses: [n x m],
- *       textChannelId: Channel.id
- *     },
- *    p2:
- *     {
- *       id: Member.id,
- *       board: [n x m],
- *       guesses: [n x m],
- *       textChannelId: Channel.id
- *     },
- *    inviteTimestamp: Date,
- *    inviteAcceptedTimestamp: Date
- *  }
- *
- */
+const sessions = [];
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -177,11 +160,59 @@ module.exports = {
 
       // In case invitee is invalid
       if (!invitee || inviter.id == invitee.id) {
-        return interaction.reply({
+        return await interaction.reply({
           content: 'You must invite a valid player!',
           ephemeral: MessageFlags.Ephemeral,
         });
       }
+
+      // Check if the inviter is already in an active session
+      const activeStatuses = ['invite_pending', 'board_setup', 'turn_p1', 'turn_p2'];
+      const inviterActiveSession = sessions.find(
+        (session) => session.p1.id === inviter.id && activeStatuses.includes(session.status)
+      );
+      if (inviterActiveSession) {
+        return await interaction.reply({
+          content:
+            'You already have an active game or pending invite. Either finish your game or cancel your invite before inviting another player.',
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      }
+
+      // Check if the invitee is in an active session
+      const inviteeActiveSession = sessions.find(
+        (session) => session.p1.id === invitee.id && activeStatuses.includes(session.status)
+      );
+      if (inviteeActiveSession) {
+        return await interaction.reply({
+          content: `${invitee} either has an active invite or is currently in a game. Tell them to cancel their invite or finish their game!`,
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      }
+
+      // Check if inviter is already invited by someone
+      const inviterIsInvitedSession = sessions.find(
+        (session) => session.status === 'invite_pending' && session.p2.id === inviter.id
+      );
+      if (inviterIsInvitedSession) {
+        return await interaction.reply({
+          content: 'You are invited by someone, check your DMs and respond to them first!',
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      }
+
+      // Check if invitee is already invited by someone
+      const inviteeIsInvitedSession = sessions.find(
+        (session) => session.status === 'invite_pending' && session.p2.id === invitee.id
+      );
+      if (inviteeIsInvitedSession) {
+        return await interaction.reply({
+          content: `${invitee} is being invited by someone else. Unfortunately, they would have to respond to their invite first.`,
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      }
+
+      const session = createSession(sessions, inviter, invitee);
 
       try {
         // Build DM message
@@ -198,22 +229,22 @@ module.exports = {
         const row = new ActionRowBuilder().addComponents(accept, deny);
 
         // Try sending DM message to invitee
-        let dmMessage;
+        let dmInteraction;
         try {
-          dmMessage = await invitee.send({
+          dmInteraction = await invitee.send({
             content: `You've been invited by ${inviter} to play Battleship!`,
             components: [row],
             withResponse: true,
           });
 
-          // Send confirmation to inviter
+          // Tell inviter that the invitation has been sent
           await interaction.reply({
             content: `Invitation sent to ${invitee}.`,
             ephemeral: MessageFlags.Ephemeral,
           });
         } catch (dmError) {
           console.error('Failed to send DM: ', error);
-          return interaction.reply({
+          return await interaction.reply({
             content: `Could not send a DM to ${invitee} They may have DMs disabled.`,
             ephemeral: MessageFlags.Ephemeral,
           });
@@ -224,25 +255,29 @@ module.exports = {
           // Wait for invitee's response
           const collectionFilter = (i) => i.user.id === invitee.id;
 
-          inviteeResponse = await dmMessage.awaitMessageComponent({
+          inviteeResponse = await dmInteraction.awaitMessageComponent({
             filter: collectionFilter,
-            time: 60_000, // 60 seconds
+            time: 60_000, // 60 seconds to accept the invite
           });
         } catch (timeoutError) {
           console.error('Invitation timed out:', timeoutError);
+
+          // Mark session's invitation as expired
+          expireSession(session);
+          console.log(sessions);
 
           // Set buttons to disabled
           accept.setDisabled(true);
           deny.setDisabled(true);
 
           // Tell invitee that the invitation has expired
-          await dmMessage.edit({
+          await dmInteraction.edit({
             content: `You've been invited by ${inviter} to play Battleship!\nUnfortunately, you didn't respond in time.`,
             components: [row],
           });
 
           // Tell inviter that the invitation has expired
-          return interaction.followUp({
+          return await interaction.followUp({
             content: `${invitee} didn't respond to the invite in time.`,
             ephemeral: MessageFlags.Ephemeral,
           });
@@ -250,21 +285,37 @@ module.exports = {
 
         // Handle invitee's response
         if (inviteeResponse.customId === 'accept_invite') {
+          // Invitee accepts the invitation
+
+          // Initialize session
+          await sessionInit(interaction, session, inviter, invitee);
+          console.log(sessions);
+
+          // Tell invintee that they've accepted the invitation
           await inviteeResponse.update({
             content: `You accepted an invite from ${inviter} to play Battleship!`,
             components: [],
           });
 
+          // Tell inviter that invitee has accepted the invitation
           return await interaction.followUp({
             content: `${invitee} has accepted your invite!`,
             ephemeral: MessageFlags.Ephemeral,
           });
         } else if (inviteeResponse.customId === 'deny_invite') {
+          // Invitee denies the invitation
+
+          // Mark session's invitation as denied
+          denySession(session);
+          console.log(sessions);
+
+          // Tell invitee that they've denied the invitation
           await inviteeResponse.update({
-            content: 'You denied the invite!',
+            content: `You denied ${inviter}'s invite!`,
             components: [],
           });
 
+          // Tell inviter that invitee has denied the invitation
           return await interaction.followUp({
             content: `${invitee} has denied your invite!`,
             ephemeral: MessageFlags.Ephemeral,

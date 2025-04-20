@@ -1,7 +1,6 @@
 const {
   SlashCommandBuilder,
   ChannelType,
-  PermissionOverwrites,
   MessageFlags,
   ActionRowBuilder,
   ButtonBuilder,
@@ -13,6 +12,7 @@ const {
   sessionInit,
   denySession,
   expireSession,
+  cancelSession,
 } = require('../../utils/battleship.js');
 
 // TODO:
@@ -25,7 +25,7 @@ const {
 // 7. Implement central sessions list. A new session object is create the second an invite is created.
 //    Handle cases where invitation is denied or not responded (just change the status, and maybe no need
 //    to remove the session) ✅
-// 8. Implement cancel invite
+// 8. Implement cancel invite ✅
 // 9. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
 //      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId
 //      b. Implement text channel creation with permissions for respective players and redirect players to
@@ -78,6 +78,9 @@ module.exports = {
         .addUserOption((option) =>
           option.setName('player').setDescription('The player you want to invite').setRequired(true)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand.setName('cancel-invite').setDescription('Cancels your invite')
     ),
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
@@ -197,6 +200,8 @@ module.exports = {
             withResponse: true,
           });
 
+          session.dm = { channelId: dmInteraction.channel.id, interactionId: dmInteraction.id };
+
           // Tell inviter that the invitation has been sent
           await interaction.reply({
             content: `Invitation sent to ${invitee}.`,
@@ -221,6 +226,11 @@ module.exports = {
           });
         } catch (timeoutError) {
           console.error('Invitation timed out:', timeoutError);
+
+          // Check if the invite is still pending (aka not cancelled)
+          if (session.status !== 'invite_pending') {
+            return;
+          }
 
           // Mark session's invitation as expired
           expireSession(session);
@@ -288,6 +298,47 @@ module.exports = {
           ephemeral: MessageFlags.Ephemeral,
         });
       }
+    } else if (subcommand === 'cancel-invite') {
+      const client = interaction.client;
+      const inviter = interaction.user;
+      const pendingInviteSession = sessions.find(
+        (session) => session.p1.id === inviter.id && session.status === 'invite_pending'
+      );
+
+      // Doesn't have pending invites
+      if (!pendingInviteSession) {
+        return interaction.reply({
+          content: "You don't have any pending invites!",
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      }
+
+      const invitee = await client.users.fetch(pendingInviteSession.p2.id);
+
+      // Getting dmInteraction
+      const { channelId: dmChannelId, interactionId: dmInteractionId } = pendingInviteSession.dm;
+      const dmChannel = await client.channels.fetch(dmChannelId);
+      const dmInteraction = await dmChannel.messages.fetch(dmInteractionId);
+
+      // Set buttons to disabled
+      const row = ActionRowBuilder.from(dmInteraction.components[0]);
+      row.components = row.components.map((component) =>
+        ButtonBuilder.from(component).setDisabled(true)
+      );
+
+      cancelSession(pendingInviteSession);
+
+      // Tell invitee that the invite is cancelled
+      await dmInteraction.edit({
+        content: `${inviter} cancelled the invitation.`,
+        components: [row],
+      });
+
+      // Tell the inviter that the cancellation has been made
+      return await interaction.reply({
+        content: `Your invite to ${invitee} has been cancelled!`,
+        ephemeral: MessageFlags.Ephemeral,
+      });
     }
   },
 };

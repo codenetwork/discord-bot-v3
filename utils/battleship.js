@@ -213,10 +213,19 @@ function expireSession(session) {
   console.log(session);
 }
 
+function cancelSession(session) {
+  session.inviteCancelledTimestamp = new Date();
+  session.status = 'invite_cancelled';
+
+  console.log('Session cancelled!');
+  console.log(session);
+}
+
 module.exports = {
   isInviteValid,
   createSession,
   sessionInit,
   denySession,
   expireSession,
+  cancelSession,
 };

@@ -42,3 +42,13 @@ To run the bot, you will need to run these two commands in order, every time:
 2. `node index.js`
 
 When you are done with the server, terminate it (Ctrl+C).
+
+## Features
+- Library Capacity Tracker
+- QUT Shuttle Timetable
+- CN Admin Web Pannel
+- QUT Unit Information
+- Discord Music Bot
+- CN Club information (Events/Memberships)
+
+If you have more feature ideas, feel free to suggest/create them!

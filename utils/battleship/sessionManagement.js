@@ -1,5 +1,7 @@
 const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js');
 
+const sessions = [];
+
 /**
  * `sessions` type (per item)
  * session:
@@ -28,7 +30,7 @@ const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js')
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 10;
 
-async function isInviteValid(interaction, sessions, inviter, invitee) {
+async function isInviteValid(interaction, inviter, invitee) {
   // Check if the inviter is already in an active session
   const activeStatuses = ['invite_pending', 'board_setup', 'turn_p1', 'turn_p2'];
   const inviterActiveSession = sessions.find(
@@ -88,7 +90,7 @@ function newBoard() {
     .map(() => Array(BOARD_WIDTH).fill(0));
 }
 
-function createSession(sessions, p1, p2) {
+function createSession(p1, p2) {
   const newSession = {
     id: sessions.length,
     status: 'invite_pending',
@@ -228,4 +230,5 @@ module.exports = {
   denySession,
   expireSession,
   cancelSession,
+  sessions,
 };

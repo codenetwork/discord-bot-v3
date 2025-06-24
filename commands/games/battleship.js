@@ -13,7 +13,8 @@ const {
   denySession,
   expireSession,
   cancelSession,
-} = require('../../utils/battleship.js');
+  sessions,
+} = require('../../utils/battleship/sessionManagement.js');
 
 // TODO:
 // 1. Create categories ✅
@@ -34,8 +35,6 @@ const {
 //          i. Place ship (handles which orientation, valid ship placements)
 //         ii. Finish method to indicate that they're finished (handles if all ships are placed)
 //        iii. Maybe a remove ship method to undo a ship placement.
-
-const sessions = [];
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -171,13 +170,13 @@ module.exports = {
         });
       }
 
-      if (!(await isInviteValid(interaction, sessions, inviter, invitee))) {
+      if (!(await isInviteValid(interaction, inviter, invitee))) {
         return;
       }
 
       // Creates a new session,
       // also adds to `sessions`
-      const session = createSession(sessions, inviter, invitee);
+      const session = createSession(inviter, invitee);
 
       try {
         // Build DM message
@@ -262,6 +261,18 @@ module.exports = {
           // Initialize session
           await sessionInit(interaction, session, inviter, invitee);
           console.log(sessions);
+
+          const p1textChannel = await interaction.client.channels.fetch(session.p1.textChannelId);
+          const p1textChannelMessage = await p1textChannel.send({
+            content: 'ahh',
+          });
+          session.p1.messageId = p1textChannelMessage.id;
+
+          const p2textChannel = await interaction.client.channels.fetch(session.p2.textChannelId);
+          const p2textChannelMessage = await p2textChannel.send({
+            content: 'ahh',
+          });
+          session.p2.messageId = p2textChannelMessage.id;
 
           // Tell invintee that they've accepted the invitation
           await inviteeResponse.update({

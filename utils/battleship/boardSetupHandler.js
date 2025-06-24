@@ -74,18 +74,15 @@ function boardRepresentation(board) {
 }
 
 function generateMainInterface(session, player) {
-  let board;
-  if (player === 'p1') {
-    board = session.p1.board;
-  } else {
-    board = session.p2.board;
-  }
+  const board = player === 'p1' ? session.p1.board : session.p2.board;
 
-  const boardInText = boardRepresentation(board);
+  const boardAsText = boardRepresentation(board);
 
-  const textDisplayComponent = new TextDisplayBuilder().setContent(boardInText);
+  const boardTextDisplayComponent = new TextDisplayBuilder().setContent(
+    'Your current board:\n' + boardAsText
+  );
 
-  return [textDisplayComponent];
+  return [boardTextDisplayComponent];
 }
 
 async function handleBoardSetupInteraction(interaction, session) {

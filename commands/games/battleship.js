@@ -265,20 +265,24 @@ module.exports = {
           console.log(sessions);
 
           const p1textChannel = await interaction.client.channels.fetch(session.p1.textChannelId);
-
-          // const textDisplay = new TextDisplayBuilder().setContent(
-          //   '# Sasimbegu\nanjing lucune ahh ahh ahh ah ah'
-          // );
+          const welcomeP1Component = new TextDisplayBuilder().setContent(
+            `# Welcome to Battleship!\n## You are fighting against ${invitee}`
+          );
 
           const p1textChannelMessage = await p1textChannel.send({
-            components: generateMainInterface(session, 'p1'),
+            components: [welcomeP1Component, ...generateMainInterface(session, 'p1')],
             flags: MessageFlags.IsComponentsV2,
           });
           session.p1.messageId = p1textChannelMessage.id;
 
           const p2textChannel = await interaction.client.channels.fetch(session.p2.textChannelId);
+          const welcomeP2Component = new TextDisplayBuilder().setContent(
+            `# Welcome to Battleship!\n## You are fighting against ${inviter}`
+          );
+
           const p2textChannelMessage = await p2textChannel.send({
-            content: 'ahh',
+            components: [welcomeP2Component, ...generateMainInterface(session, 'p2')],
+            flags: MessageFlags.IsComponentsV2,
           });
           session.p2.messageId = p2textChannelMessage.id;
 

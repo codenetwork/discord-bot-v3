@@ -89,22 +89,28 @@ function newBoard() {
     .map(() => Array(BOARD_WIDTH).fill(SEA));
 }
 
+function newPlayerObj(player) {
+  return {
+    id: player.id,
+    board: null,
+    guesses: null,
+    textChanellId: null,
+    boardSetup: {
+      currentInterface: null,
+      selectedShip: null,
+      selectedOrientation: null,
+      selectedRow: null,
+      selectedColumn: null,
+    },
+  };
+}
+
 function createSession(p1, p2) {
   const newSession = {
     id: sessions.length,
     status: 'invite_pending',
-    p1: {
-      id: p1.id,
-      board: null,
-      guesses: null,
-      textChannelId: null,
-    },
-    p2: {
-      id: p2.id,
-      board: null,
-      guesses: null,
-      textChannelId: null,
-    },
+    p1: newPlayerObj(p1),
+    p2: newPlayerObj(p2),
     inviteTimestamp: new Date(),
     // inviteAcceptedTimestamp: null,
   };
@@ -187,6 +193,10 @@ async function sessionInit(interaction, session, p1, p2) {
   session.p1.guesses = newBoard();
   session.p2.board = newBoard();
   session.p2.guesses = newBoard();
+
+  // Board setups
+  session.p1.boardSetup.currentInterface = 'main';
+  session.p2.boardSetup.currentInterface = 'main';
 
   // Mark time accepted
   session.inviteAcceptedTimestamp = new Date();

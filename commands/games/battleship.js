@@ -5,6 +5,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  TextDisplayBuilder,
 } = require('discord.js');
 const {
   isInviteValid,
@@ -15,6 +16,7 @@ const {
   cancelSession,
   sessions,
 } = require('../../utils/battleship/sessionManagement.js');
+const { generateMainInterface } = require('../../utils/battleship/boardSetupHandler.js');
 
 // TODO:
 // 1. Create categories ✅
@@ -263,8 +265,14 @@ module.exports = {
           console.log(sessions);
 
           const p1textChannel = await interaction.client.channels.fetch(session.p1.textChannelId);
+
+          // const textDisplay = new TextDisplayBuilder().setContent(
+          //   '# Sasimbegu\nanjing lucune ahh ahh ahh ah ah'
+          // );
+
           const p1textChannelMessage = await p1textChannel.send({
-            content: 'ahh',
+            components: generateMainInterface(session, 'p1'),
+            flags: MessageFlags.IsComponentsV2,
           });
           session.p1.messageId = p1textChannelMessage.id;
 

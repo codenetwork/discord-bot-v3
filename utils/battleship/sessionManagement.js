@@ -1,4 +1,5 @@
 const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js');
+const { BOARD_HEIGHT, BOARD_WIDTH, SEA } = require('./constants');
 
 const sessions = [];
 
@@ -27,8 +28,6 @@ const sessions = [];
  *  }
  *
  */
-const BOARD_WIDTH = 10;
-const BOARD_HEIGHT = 10;
 
 async function isInviteValid(interaction, inviter, invitee) {
   // Check if the inviter is already in an active session
@@ -87,7 +86,7 @@ async function isInviteValid(interaction, inviter, invitee) {
 function newBoard() {
   return Array(BOARD_HEIGHT)
     .fill()
-    .map(() => Array(BOARD_WIDTH).fill(0));
+    .map(() => Array(BOARD_WIDTH).fill(SEA));
 }
 
 function createSession(p1, p2) {

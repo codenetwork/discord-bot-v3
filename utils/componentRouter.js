@@ -5,8 +5,6 @@ async function handleComponentInteraction(interaction) {
   // Route based on customId prefix
   if (interaction.customId.startsWith('battleship_')) {
     await handleBattleshipComponents(interaction);
-  } else {
-    console.log(`Unhandled component interaction: ${interaction.customId}`);
   }
 }
 

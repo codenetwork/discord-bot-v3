@@ -181,12 +181,12 @@ module.exports = {
       try {
         // Build DM message
         const accept = new ButtonBuilder()
-          .setCustomId('accept_invite')
+          .setCustomId('battleship_accept_invite')
           .setLabel('Accept')
           .setStyle(ButtonStyle.Success);
 
         const deny = new ButtonBuilder()
-          .setCustomId('deny_invite')
+          .setCustomId('battleship_deny_invite')
           .setLabel('Deny')
           .setStyle(ButtonStyle.Danger);
 
@@ -255,7 +255,7 @@ module.exports = {
         }
 
         // Handle invitee's response
-        if (inviteeResponse.customId === 'accept_invite') {
+        if (inviteeResponse.customId === 'battleship_accept_invite') {
           // Invitee accepts the invitation
 
           // Initialize session
@@ -285,7 +285,7 @@ module.exports = {
             content: `${invitee} has accepted your invite! Head over to your game channel <#${session.p1.textChannelId}>`,
             ephemeral: MessageFlags.Ephemeral,
           });
-        } else if (inviteeResponse.customId === 'deny_invite') {
+        } else if (inviteeResponse.customId === 'battleship_deny_invite') {
           // Invitee denies the invitation
 
           // Mark session's invitation as denied

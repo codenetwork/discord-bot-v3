@@ -27,9 +27,9 @@ const {
 //    to remove the session) ✅
 // 8. Implement cancel invite ✅
 // 9. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
-//      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId
+//      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId ✅
 //      b. Implement text channel creation with permissions for respective players and redirect players to
-//         respective channels if possible. Or at least give them a link to their text channel.
+//         respective channels if possible. Or at least give them a link to their text channel. ✅
 //      c. Implement utility functions for players to set their board, methods include:
 //          i. Place ship (handles which orientation, valid ship placements)
 //         ii. Finish method to indicate that they're finished (handles if all ships are placed)
@@ -80,7 +80,7 @@ module.exports = {
         )
     )
     .addSubcommand((subcommand) =>
-      subcommand.setName('cancel-invite').setDescription('Cancels your invite')
+      subcommand.setName('invite-cancel').setDescription('Cancels your invite')
     ),
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
@@ -175,6 +175,8 @@ module.exports = {
         return;
       }
 
+      // Creates a new session,
+      // also adds to `sessions`
       const session = createSession(sessions, inviter, invitee);
 
       try {
@@ -218,11 +220,11 @@ module.exports = {
         let inviteeResponse;
         try {
           // Wait for invitee's response
-          const collectionFilter = (i) => i.user.id === invitee.id;
+          const inviteeFilter = (i) => i.user.id === invitee.id;
 
           inviteeResponse = await dmInteraction.awaitMessageComponent({
-            filter: collectionFilter,
-            time: 60_000, // 60 seconds to accept the invite
+            filter: inviteeFilter,
+            time: 10_000, // 60 seconds to accept the invite
           });
         } catch (timeoutError) {
           console.error('Invitation timed out:', timeoutError);
@@ -263,13 +265,13 @@ module.exports = {
 
           // Tell invintee that they've accepted the invitation
           await inviteeResponse.update({
-            content: `You accepted an invite from ${inviter} to play Battleship!`,
+            content: `You accepted an invite from ${inviter} to play Battleship! Head over to your game channel <#${session.p2.textChannelId}>`,
             components: [],
           });
 
           // Tell inviter that invitee has accepted the invitation
           return await interaction.followUp({
-            content: `${invitee} has accepted your invite!`,
+            content: `${invitee} has accepted your invite! Head over to your game channel <#${session.p1.textChannelId}>`,
             ephemeral: MessageFlags.Ephemeral,
           });
         } else if (inviteeResponse.customId === 'deny_invite') {
@@ -298,7 +300,7 @@ module.exports = {
           ephemeral: MessageFlags.Ephemeral,
         });
       }
-    } else if (subcommand === 'cancel-invite') {
+    } else if (subcommand === 'invite-cancel') {
       const client = interaction.client;
       const inviter = interaction.user;
       const pendingInviteSession = sessions.find(
@@ -330,7 +332,7 @@ module.exports = {
 
       // Tell invitee that the invite is cancelled
       await dmInteraction.edit({
-        content: `${inviter} cancelled the invitation.`,
+        content: `You've been invited by ${inviter} to play Battleship!\n${inviter} cancelled the invitation.`,
         components: [row],
       });
 

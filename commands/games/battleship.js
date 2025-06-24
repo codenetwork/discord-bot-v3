@@ -194,15 +194,15 @@ module.exports = {
         const row = new ActionRowBuilder().addComponents(accept, deny);
 
         // Try sending DM message to invitee
-        let dmInteraction;
+        let dmMessage;
         try {
-          dmInteraction = await invitee.send({
+          dmMessage = await invitee.send({
             content: `You've been invited by ${inviter} to play Battleship!`,
             components: [row],
             withResponse: true,
           });
 
-          session.dm = { channelId: dmInteraction.channel.id, interactionId: dmInteraction.id };
+          session.dm = { channelId: dmMessage.channel.id, messageId: dmMessage.id };
 
           // Tell inviter that the invitation has been sent
           await interaction.reply({
@@ -222,9 +222,9 @@ module.exports = {
           // Wait for invitee's response
           const inviteeFilter = (i) => i.user.id === invitee.id;
 
-          inviteeResponse = await dmInteraction.awaitMessageComponent({
+          inviteeResponse = await dmMessage.awaitMessageComponent({
             filter: inviteeFilter,
-            time: 10_000, // 60 seconds to accept the invite
+            time: 60_000, // 60 seconds to accept the invite
           });
         } catch (timeoutError) {
           console.error('Invitation timed out:', timeoutError);
@@ -243,7 +243,7 @@ module.exports = {
           deny.setDisabled(true);
 
           // Tell invitee that the invitation has expired
-          await dmInteraction.edit({
+          await dmMessage.edit({
             content: `You've been invited by ${inviter} to play Battleship!\nUnfortunately, you didn't respond in time.`,
             components: [row],
           });
@@ -318,12 +318,12 @@ module.exports = {
       const invitee = await client.users.fetch(pendingInviteSession.p2.id);
 
       // Getting dmInteraction
-      const { channelId: dmChannelId, interactionId: dmInteractionId } = pendingInviteSession.dm;
+      const { channelId: dmChannelId, messageId: dmMessageId } = pendingInviteSession.dm;
       const dmChannel = await client.channels.fetch(dmChannelId);
-      const dmInteraction = await dmChannel.messages.fetch(dmInteractionId);
+      const dmMessage = await dmChannel.messages.fetch(dmMessageId);
 
       // Set buttons to disabled
-      const row = ActionRowBuilder.from(dmInteraction.components[0]);
+      const row = ActionRowBuilder.from(dmMessage.components[0]);
       row.components = row.components.map((component) =>
         ButtonBuilder.from(component).setDisabled(true)
       );
@@ -331,7 +331,7 @@ module.exports = {
       cancelSession(pendingInviteSession);
 
       // Tell invitee that the invite is cancelled
-      await dmInteraction.edit({
+      await dmMessage.edit({
         content: `You've been invited by ${inviter} to play Battleship!\n${inviter} cancelled the invitation.`,
         components: [row],
       });

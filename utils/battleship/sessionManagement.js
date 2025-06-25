@@ -102,6 +102,7 @@ function newPlayerObj(player) {
       selectedOrientation: null,
       selectedRow: null,
       selectedColumn: null,
+      placementFeedbackMessageId: null,
     },
   };
 }

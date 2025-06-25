@@ -8,6 +8,8 @@ const {
   MessageFlags,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
 } = require('discord.js');
 
 function boardRepresentation(board) {
@@ -75,6 +77,94 @@ function boardRepresentation(board) {
   return parts.join('');
 }
 
+function isPlacementValid(session, playerKey) {
+  const { board, boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+
+  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
+
+  // If any of the selections are incomplete
+  if (!selectedShip || !selectedOrientation || !selectedRow || !selectedColumn) {
+    return false;
+  }
+
+  const { length: shipLength } = selectedShip;
+  const colIdx = selectedColumn - 1; // column in indexes
+  const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0); // row in indexes
+
+  if (selectedOrientation === 'Horizontal') {
+    if (colIdx + shipLength > BOARD_WIDTH) return false;
+
+    for (let i = 0; i < shipLength; i++) {
+      if (board[rowIdx][colIdx + i] !== SEA) {
+        return false;
+      }
+    }
+  } else {
+    if (rowIdx + shipLength > BOARD_HEIGHT) return false;
+
+    for (let i = 0; i < shipLength; i++) {
+      if (board[rowIdx + i][colIdx] !== SEA) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+async function sendPlacementFeedback(interaction, session, playerKey) {
+  const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+
+  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
+
+  // If any of the selections are incomplete
+  if (!selectedShip || !selectedOrientation || !selectedRow || !selectedColumn) {
+    return;
+  }
+
+  // Delete previous button message if it exists
+  if (boardSetup.placementFeedbackMessageId) {
+    try {
+      const oldMessage = await interaction.channel.messages.fetch(
+        boardSetup.placementFeedbackMessageId
+      );
+      await oldMessage.delete();
+    } catch (error) {
+      // Message might already be deleted, ignore error
+    }
+  }
+
+  // Send a message saying whether their placement was valid or not
+  // If it's valid, a place button is sent
+  // If it's not valid, a simple message telling why it's invalid is sent
+  if (isPlacementValid(session, playerKey)) {
+    const placeButton = new ButtonBuilder()
+      .setCustomId('confirm_place_ship_button')
+      .setLabel('🎯 Place Ship!')
+      .setStyle(ButtonStyle.Success);
+    const actionRow = new ActionRowBuilder().addComponents(placeButton);
+
+    const placeButtonMessage = await interaction.followUp({
+      components: [actionRow],
+      flags: MessageFlags.IsComponentsV2,
+    });
+
+    boardSetup.placementFeedbackMessageId = placeButtonMessage.id;
+    createPlayerCollector(placeButtonMessage, session, playerKey);
+  } else {
+    const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(
+      'Your placement selection is invalid, please change your selections!'
+    );
+
+    const invalidPlacementMessage = await interaction.followUp({
+      components: [invalidPlacementTextDisplay],
+      flags: MessageFlags.IsComponentsV2,
+    });
+
+    boardSetup.placementFeedbackMessageId = invalidPlacementMessage.id;
+  }
+}
+
 function generateMainInterface(session, playerKey) {
   const board = playerKey === 'p1' ? session.p1.board : session.p2.board;
 
@@ -103,9 +193,15 @@ function generateMainInterface(session, playerKey) {
 function generatePlacingInterface(session, playerKey) {
   const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
 
-  const boardTextDisplayComponent = new TextDisplayBuilder().setContent(
+  const titleTextDisplay = new TextDisplayBuilder().setContent(
+    '# Place a ship!\nWhat your board currently looks like:'
+  );
+
+  const boardTextDisplay = new TextDisplayBuilder().setContent(
     boardRepresentation(playerObj.board)
   );
+
+  const separator = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
 
   const shipSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('ship_select_menu')
@@ -135,14 +231,11 @@ function generatePlacingInterface(session, playerKey) {
   for (let row = 0; row < BOARD_HEIGHT; row++) {
     const asciiValA = 'A'.charCodeAt(0);
     const rowChar = String.fromCharCode(asciiValA + row);
-
     const rowSelectMenuOption = new StringSelectMenuOptionBuilder()
       .setLabel(rowChar)
       .setValue(rowChar);
-
     rowOptions.push(rowSelectMenuOption);
   }
-
   const rowSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('row_select_menu')
     .setPlaceholder('Select a row!')
@@ -154,10 +247,8 @@ function generatePlacingInterface(session, playerKey) {
     const colSelectMenuOption = new StringSelectMenuOptionBuilder()
       .setLabel(`${col}`)
       .setValue(`${col}`);
-
     colOptions.push(colSelectMenuOption);
   }
-
   const colSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('col_select_menu')
     .setPlaceholder('Select a column!')
@@ -165,7 +256,9 @@ function generatePlacingInterface(session, playerKey) {
   const colActionRow = new ActionRowBuilder().addComponents(colSelectMenu);
 
   return [
-    boardTextDisplayComponent,
+    titleTextDisplay,
+    boardTextDisplay,
+    separator,
     shipActionRow,
     orientationActionRow,
     rowActionRow,
@@ -196,9 +289,12 @@ function createPlayerCollector(message, session, playerKey) {
     }*/
   });
 
-  collector.on('end', async (collected) => {
+  collector.on('end', async (collected, reason) => {
     // TODO: make user unable to do shit once timed out lol
-    await message.channel.send({ content: 'nigga timed out' });
+    if (reason === 'time')
+      await message.channel.send({ content: `nigga timed out from ${message.id}` });
+    // console.log(message);
+    console.log(reason);
   });
 }
 
@@ -233,16 +329,12 @@ async function startPlacingFlow(interaction, session, playerKey) {
   // Acknowledge "Place Ship" pressed immediately
   await interaction.reply('Opening ship placement...');
 
-  const textDisplayComponent = new TextDisplayBuilder().setContent(
-    '# Place a ship!\nWhat your board currently looks like:'
-  );
-
   const placeInterfaceMessage = await interaction.channel.send({
-    components: [textDisplayComponent, ...generatePlacingInterface(session, playerKey)],
+    components: generatePlacingInterface(session, playerKey),
     flags: MessageFlags.IsComponentsV2,
   });
 
-  console.log('Just finished generatingPlaceInterface()');
+  // console.log('Just finished generatingPlaceInterface()');
 
   createPlayerCollector(placeInterfaceMessage, session, playerKey);
 }
@@ -259,11 +351,6 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
 
 async function handlePlacingInterfaceClick(interaction, session, playerKey) {
   console.log(interaction.customId);
-  // if (interaction.customId.endsWith('select_menu')) {
-  //   await interaction.deferUpdate();
-  // } else {
-  //   console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);
-  // }
   const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
 
   switch (interaction.customId) {
@@ -274,24 +361,28 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
       boardSetup.selectedShip = shipObj;
 
       await interaction.deferUpdate();
+      await sendPlacementFeedback(interaction, session, playerKey);
       break;
     case 'orientation_select_menu':
       const selectedOrientation = interaction.values[0];
       boardSetup.selectedOrientation = selectedOrientation;
 
       await interaction.deferUpdate();
+      await sendPlacementFeedback(interaction, session, playerKey);
       break;
     case 'row_select_menu':
       const selectedRow = interaction.values[0];
       boardSetup.selectedRow = selectedRow;
 
       await interaction.deferUpdate();
+      await sendPlacementFeedback(interaction, session, playerKey);
       break;
     case 'col_select_menu':
       const selectedColumn = interaction.values[0];
       boardSetup.selectedColumn = parseInt(selectedColumn);
 
       await interaction.deferUpdate();
+      await sendPlacementFeedback(interaction, session, playerKey);
       break;
     default:
       console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);

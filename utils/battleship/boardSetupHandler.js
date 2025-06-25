@@ -1,5 +1,5 @@
 const { sessions } = require('./sessionManagement');
-const { SEA } = require('./constants');
+const { SEA, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
 const {
   TextDisplayBuilder,
   ActionRowBuilder,
@@ -9,12 +9,6 @@ const {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } = require('discord.js');
-
-function findSessionByChannel(channelId) {
-  return sessions.find(
-    (session) => session.p1.textChannelId === channelId || session.p2.textChannelId === channelId
-  );
-}
 
 function boardRepresentation(board) {
   const parts = ['```\n'];
@@ -107,17 +101,17 @@ function generateMainInterface(session, playerKey) {
 }
 
 function generatePlacingInterface(session, playerKey) {
-  const player = playerKey === 'p1' ? session.p1 : session.p2;
+  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
 
   const boardTextDisplayComponent = new TextDisplayBuilder().setContent(
-    boardRepresentation(player.board)
+    boardRepresentation(playerObj.board)
   );
 
   const shipSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('ship_select_menu')
     .setPlaceholder('Select a ship!')
     .addOptions(
-      ...player.boardSetup.ships
+      playerObj.boardSetup.ships
         .filter((ship) => !ship.placed)
         .map((ship) => {
           return new StringSelectMenuOptionBuilder()
@@ -126,11 +120,57 @@ function generatePlacingInterface(session, playerKey) {
             .setValue(ship.name.toLowerCase());
         })
     );
+  const shipActionRow = new ActionRowBuilder().addComponents(shipSelectMenu);
 
-  const actionRow = new ActionRowBuilder().addComponents(shipSelectMenu);
+  const orientationSelectMenu = new StringSelectMenuBuilder()
+    .setCustomId('orientation_select_menu')
+    .setPlaceholder('Select an orientation!')
+    .addOptions(
+      new StringSelectMenuOptionBuilder().setLabel('Horizontal').setValue('Horizontal'),
+      new StringSelectMenuOptionBuilder().setLabel('Vertical').setValue('Vertical')
+    );
+  const orientationActionRow = new ActionRowBuilder().addComponents(orientationSelectMenu);
 
-  // return [boardTextDisplayComponent, shipSelectMenu];
-  return [boardTextDisplayComponent, actionRow];
+  const rowOptions = [];
+  for (let row = 0; row < BOARD_HEIGHT; row++) {
+    const asciiValA = 'A'.charCodeAt(0);
+    const rowChar = String.fromCharCode(asciiValA + row);
+
+    const rowSelectMenuOption = new StringSelectMenuOptionBuilder()
+      .setLabel(rowChar)
+      .setValue(rowChar);
+
+    rowOptions.push(rowSelectMenuOption);
+  }
+
+  const rowSelectMenu = new StringSelectMenuBuilder()
+    .setCustomId('row_select_menu')
+    .setPlaceholder('Select a row!')
+    .addOptions(rowOptions);
+  const rowActionRow = new ActionRowBuilder().addComponents(rowSelectMenu);
+
+  const colOptions = [];
+  for (let col = 1; col <= BOARD_WIDTH; col++) {
+    const colSelectMenuOption = new StringSelectMenuOptionBuilder()
+      .setLabel(`${col}`)
+      .setValue(`${col}`);
+
+    colOptions.push(colSelectMenuOption);
+  }
+
+  const colSelectMenu = new StringSelectMenuBuilder()
+    .setCustomId('col_select_menu')
+    .setPlaceholder('Select a column!')
+    .addOptions(colOptions);
+  const colActionRow = new ActionRowBuilder().addComponents(colSelectMenu);
+
+  return [
+    boardTextDisplayComponent,
+    shipActionRow,
+    orientationActionRow,
+    rowActionRow,
+    colActionRow,
+  ];
 }
 
 function createPlayerCollector(message, session, playerKey) {
@@ -213,25 +253,54 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
     console.log('PLACE SHIP BABY');
     boardSetup.currentInterface = 'placing';
     console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
-    // console.log("p1's boardSetup from session is now:");
-    // console.log(session.p1.boardSetup);
-    // console.log("p2's boardSetup from session is now:");
-    // console.log(session.p2.boardSetup);
     await startPlacingFlow(interaction, session, playerKey);
   }
 }
 
 async function handlePlacingInterfaceClick(interaction, session, playerKey) {
-  console.log('in handlePlacingInterfaceClick()');
   console.log(interaction.customId);
-  if (interaction.customId === 'ship_select_menu') {
-    await interaction.reply({
-      content: `Nigga you selected ${interaction.values[0]}`,
-    });
+  // if (interaction.customId.endsWith('select_menu')) {
+  //   await interaction.deferUpdate();
+  // } else {
+  //   console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);
+  // }
+  const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+
+  switch (interaction.customId) {
+    case 'ship_select_menu':
+      const selectedShipName = interaction.values[0];
+
+      const shipObj = boardSetup.ships.find((ship) => ship.name.toLowerCase() === selectedShipName);
+      boardSetup.selectedShip = shipObj;
+
+      await interaction.deferUpdate();
+      break;
+    case 'orientation_select_menu':
+      const selectedOrientation = interaction.values[0];
+      boardSetup.selectedOrientation = selectedOrientation;
+
+      await interaction.deferUpdate();
+      break;
+    case 'row_select_menu':
+      const selectedRow = interaction.values[0];
+      boardSetup.selectedRow = selectedRow;
+
+      await interaction.deferUpdate();
+      break;
+    case 'col_select_menu':
+      const selectedColumn = interaction.values[0];
+      boardSetup.selectedColumn = parseInt(selectedColumn);
+
+      await interaction.deferUpdate();
+      break;
+    default:
+      console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);
+      break;
   }
+
+  console.log(boardSetup);
 }
 
 module.exports = {
-  findSessionByChannel,
   startBoardSetup,
 };

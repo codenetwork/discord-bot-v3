@@ -16,7 +16,7 @@ const {
   cancelSession,
   sessions,
 } = require('../../utils/battleship/sessionManagement.js');
-const { generateMainInterface } = require('../../utils/battleship/boardSetupHandler.js');
+const { startBoardSetup } = require('../../utils/battleship/boardSetupHandler.js');
 
 // TODO:
 // 1. Create categories ✅
@@ -218,15 +218,56 @@ module.exports = {
           });
         }
 
-        let inviteeResponse;
         try {
           // Wait for invitee's response
           const inviteeFilter = (i) => i.user.id === invitee.id;
 
-          inviteeResponse = await dmMessage.awaitMessageComponent({
+          const inviteeResponse = await dmMessage.awaitMessageComponent({
             filter: inviteeFilter,
             time: 60_000, // 60 seconds to accept the invite
           });
+
+          // Handle invitee's response
+          if (inviteeResponse.customId === 'accept_invite') {
+            // Invitee accepts the invitation
+
+            // Initialize session
+            await sessionInit(interaction, session, inviter, invitee);
+            console.log(sessions);
+
+            // Sends initial message on respective players' channels
+            startBoardSetup(interaction, session);
+
+            // Tell invintee that they've accepted the invitation
+            await inviteeResponse.update({
+              content: `You accepted an invite from ${inviter} to play Battleship! Head over to your game channel <#${session.p2.textChannelId}>`,
+              components: [],
+            });
+
+            // Tell inviter that invitee has accepted the invitation
+            return await interaction.followUp({
+              content: `${invitee} has accepted your invite! Head over to your game channel <#${session.p1.textChannelId}>`,
+              ephemeral: MessageFlags.Ephemeral,
+            });
+          } else if (inviteeResponse.customId === 'deny_invite') {
+            // Invitee denies the invitation
+
+            // Mark session's invitation as denied
+            denySession(session);
+            console.log(sessions);
+
+            // Tell invitee that they've denied the invitation
+            await inviteeResponse.update({
+              content: `You denied ${inviter}'s invite!`,
+              components: [],
+            });
+
+            // Tell inviter that invitee has denied the invitation
+            return await interaction.followUp({
+              content: `${invitee} has denied your invite!`,
+              ephemeral: MessageFlags.Ephemeral,
+            });
+          }
         } catch (timeoutError) {
           console.error('Invitation timed out:', timeoutError);
 
@@ -252,67 +293,6 @@ module.exports = {
           // Tell inviter that the invitation has expired
           return await interaction.followUp({
             content: `${invitee} didn't respond to the invite in time.`,
-            ephemeral: MessageFlags.Ephemeral,
-          });
-        }
-
-        // Handle invitee's response
-        if (inviteeResponse.customId === 'accept_invite') {
-          // Invitee accepts the invitation
-
-          // Initialize session
-          await sessionInit(interaction, session, inviter, invitee);
-          console.log(sessions);
-
-          const p1textChannel = await interaction.client.channels.fetch(session.p1.textChannelId);
-          const welcomeP1Component = new TextDisplayBuilder().setContent(
-            `# Welcome to Battleship!\n## You are fighting against ${invitee}`
-          );
-
-          const p1textChannelMessage = await p1textChannel.send({
-            components: [welcomeP1Component, ...generateMainInterface(session, 'p1')],
-            flags: MessageFlags.IsComponentsV2,
-          });
-          session.p1.messageId = p1textChannelMessage.id;
-
-          const p2textChannel = await interaction.client.channels.fetch(session.p2.textChannelId);
-          const welcomeP2Component = new TextDisplayBuilder().setContent(
-            `# Welcome to Battleship!\n## You are fighting against ${inviter}`
-          );
-
-          const p2textChannelMessage = await p2textChannel.send({
-            components: [welcomeP2Component, ...generateMainInterface(session, 'p2')],
-            flags: MessageFlags.IsComponentsV2,
-          });
-          session.p2.messageId = p2textChannelMessage.id;
-
-          // Tell invintee that they've accepted the invitation
-          await inviteeResponse.update({
-            content: `You accepted an invite from ${inviter} to play Battleship! Head over to your game channel <#${session.p2.textChannelId}>`,
-            components: [],
-          });
-
-          // Tell inviter that invitee has accepted the invitation
-          return await interaction.followUp({
-            content: `${invitee} has accepted your invite! Head over to your game channel <#${session.p1.textChannelId}>`,
-            ephemeral: MessageFlags.Ephemeral,
-          });
-        } else if (inviteeResponse.customId === 'deny_invite') {
-          // Invitee denies the invitation
-
-          // Mark session's invitation as denied
-          denySession(session);
-          console.log(sessions);
-
-          // Tell invitee that they've denied the invitation
-          await inviteeResponse.update({
-            content: `You denied ${inviter}'s invite!`,
-            components: [],
-          });
-
-          // Tell inviter that invitee has denied the invitation
-          return await interaction.followUp({
-            content: `${invitee} has denied your invite!`,
             ephemeral: MessageFlags.Ephemeral,
           });
         }

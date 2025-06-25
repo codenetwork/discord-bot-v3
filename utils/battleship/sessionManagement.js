@@ -94,7 +94,7 @@ function newPlayerObj(player) {
     id: player.id,
     board: null,
     guesses: null,
-    textChanellId: null,
+    textChannelId: null,
     boardSetup: {
       currentInterface: null,
       selectedShip: null,

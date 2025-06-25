@@ -2,7 +2,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, PermissionsBitField } = require('discord.js');
-const { handleComponentInteraction } = require('./utils/componentRouter');
 require('dotenv').config();
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
@@ -43,14 +42,6 @@ client.on(Events.InteractionCreate, async interaction => {
 			} else {
 				await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 			}
-		}
-	}
-
-	else if (interaction.isMessageComponent()) {
-		try {
-			await handleComponentInteraction(interaction);
-		} catch(error) {
-			console.error('Error handling component interaction:', error);
 		}
 	}
 

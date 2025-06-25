@@ -6,6 +6,8 @@ const {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } = require('discord.js');
 
 function findSessionByChannel(channelId) {
@@ -104,27 +106,61 @@ function generateMainInterface(session, playerKey) {
   return [boardTextDisplayComponent, row];
 }
 
-// async function handleBoardSetupInteraction(interaction, session) {
-//   // Massive ass switch statement
-//   switch (interaction.customId.substr('battleship_'.length)) {
-//     case 'place_ship':
-//       console.log('PLACE SHIP BABY');
+function generatePlacingInterface(session, playerKey) {
+  const player = playerKey === 'p1' ? session.p1 : session.p2;
 
-//       const textDisplayComponent = new TextDisplayBuilder().setContent(
-//         '# ahh the ship HAS BEEN PLACED'
-//       );
+  const boardTextDisplayComponent = new TextDisplayBuilder().setContent(
+    boardRepresentation(player.board)
+  );
 
-//       return interaction.reply({
-//         components: [textDisplayComponent],
-//         flags: MessageFlags.IsComponentsV2,
-//       });
-//     case 'remove_ship':
-//       console.log('rmeove ship BABY');
-//       break;
-//     default:
-//       console.log('WHAT THE IS GOING GON ODASNFOSNDFKLDJF LKASJ FLKASJFKLADSJ ');
-//   }
-// }
+  const shipSelectMenu = new StringSelectMenuBuilder()
+    .setCustomId('ship_select_menu')
+    .setPlaceholder('Select a ship!')
+    .addOptions(
+      ...player.boardSetup.ships
+        .filter((ship) => !ship.placed)
+        .map((ship) => {
+          return new StringSelectMenuOptionBuilder()
+            .setLabel(`${ship.name} (length ${ship.length})`)
+            .setEmoji(ship.emoji)
+            .setValue(ship.name.toLowerCase());
+        })
+    );
+
+  const actionRow = new ActionRowBuilder().addComponents(shipSelectMenu);
+
+  // return [boardTextDisplayComponent, shipSelectMenu];
+  return [boardTextDisplayComponent, actionRow];
+}
+
+function createPlayerCollector(message, session, playerKey) {
+  const playerId = playerKey === 'p1' ? session.p1.id : session.p2.id;
+
+  const collector = message.createMessageComponentCollector({
+    filter: (i) => i.user.id === playerId,
+    time: 300_000, // 5 minutes
+  });
+
+  collector.on('collect', async (interaction) => {
+    const { currentInterface } = playerKey === 'p1' ? session.p1.boardSetup : session.p2.boardSetup;
+    console.log(currentInterface);
+
+    if (currentInterface === 'main') {
+      console.log("Nigga i'm at main");
+      await handleMainInterfaceClick(interaction, session, playerKey);
+    } else if (currentInterface === 'placing') {
+      console.log("Nigga i'm at placing");
+      await handlePlacingInterfaceClick(interaction, session, playerKey);
+    } /*else if (ace === 'removing') {
+      await handleRemovingInterfaceClick();
+    }*/
+  });
+
+  collector.on('end', async (collected) => {
+    // TODO: make user unable to do shit once timed out lol
+    await message.channel.send({ content: 'nigga timed out' });
+  });
+}
 
 async function startBoardSetup(interaction, session) {
   const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
@@ -135,7 +171,7 @@ async function startBoardSetup(interaction, session) {
     `# Welcome to Battleship!\n## You are fighting against <@${session.p2.id}>`
   );
 
-  await p1Channel.send({
+  const p1Message = await p1Channel.send({
     components: [welcomeP1Component, ...generateMainInterface(session, 'p1')],
     flags: MessageFlags.IsComponentsV2,
   });
@@ -144,52 +180,53 @@ async function startBoardSetup(interaction, session) {
     `# Welcome to Battleship!\n## You are fighting against <@${session.p1.id}>`
   );
 
-  await p2Channel.send({
+  const p2Message = await p2Channel.send({
     components: [welcomeP2Component, ...generateMainInterface(session, 'p2')],
     flags: MessageFlags.IsComponentsV2,
   });
 
-  createPlayerCollector(p1Channel, session, 'p1');
-  createPlayerCollector(p2Channel, session, 'p2');
+  createPlayerCollector(p1Message, session, 'p1');
+  createPlayerCollector(p2Message, session, 'p2');
 }
 
-function createPlayerCollector(channel, session, playerKey) {
-  const playerId = playerKey === 'p1' ? session.p1.id : session.p2.id;
-  const collector = channel.createMessageComponentCollector({
-    filter: (i) => i.user.id === playerId,
-    // time: 300_000, // 5 minutes
-    time: 10_000, // 10 seconds
+async function startPlacingFlow(interaction, session, playerKey) {
+  // Acknowledge "Place Ship" pressed immediately
+  await interaction.reply('Opening ship placement...');
+
+  const textDisplayComponent = new TextDisplayBuilder().setContent(
+    '# Place a ship!\nWhat your board currently looks like:'
+  );
+
+  const placeInterfaceMessage = await interaction.channel.send({
+    components: [textDisplayComponent, ...generatePlacingInterface(session, playerKey)],
+    flags: MessageFlags.IsComponentsV2,
   });
 
-  collector.on('collect', async (interaction) => {
-    const { currentInterface } = playerKey === 'p1' ? session.p1.boardSetup : session.p2.boardSetup;
+  console.log('Just finished generatingPlaceInterface()');
 
-    if (currentInterface === 'main') {
-      await handleMainInterfaceClick(interaction, session, playerKey);
-    } /*else if (currentInterface === 'placing') {
-      await handlePlacingInterfaceClick();
-    } else if (currentInterface === 'removing') {
-      await handleRemovingInterfaceClick();
-    }*/
-  });
-
-  collector.on('end', async (collected) => {
-    // TODO: make user unable to do shit once timed out lol
-    await channel.send({ content: 'nigga timed out' });
-  });
+  createPlayerCollector(placeInterfaceMessage, session, playerKey);
 }
 
 async function handleMainInterfaceClick(interaction, session, playerKey) {
+  const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
   if (interaction.customId === 'place_ship') {
     console.log('PLACE SHIP BABY');
+    boardSetup.currentInterface = 'placing';
+    console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
+    // console.log("p1's boardSetup from session is now:");
+    // console.log(session.p1.boardSetup);
+    // console.log("p2's boardSetup from session is now:");
+    // console.log(session.p2.boardSetup);
+    await startPlacingFlow(interaction, session, playerKey);
+  }
+}
 
-    const textDisplayComponent = new TextDisplayBuilder().setContent(
-      '# ahh the ship HAS BEEN PLACED'
-    );
-
-    return interaction.reply({
-      components: [textDisplayComponent],
-      flags: MessageFlags.IsComponentsV2,
+async function handlePlacingInterfaceClick(interaction, session, playerKey) {
+  console.log('in handlePlacingInterfaceClick()');
+  console.log(interaction.customId);
+  if (interaction.customId === 'ship_select_menu') {
+    await interaction.reply({
+      content: `Nigga you selected ${interaction.values[0]}`,
     });
   }
 }

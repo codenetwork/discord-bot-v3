@@ -1,5 +1,5 @@
 const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js');
-const { BOARD_HEIGHT, BOARD_WIDTH, SEA } = require('./constants');
+const { BOARD_HEIGHT, BOARD_WIDTH, SEA, AVAILABLE_SHIPS } = require('./constants');
 
 const sessions = [];
 
@@ -97,6 +97,7 @@ function newPlayerObj(player) {
     textChannelId: null,
     boardSetup: {
       currentInterface: null,
+      ships: null,
       selectedShip: null,
       selectedOrientation: null,
       selectedRow: null,
@@ -197,6 +198,8 @@ async function sessionInit(interaction, session, p1, p2) {
   // Board setups
   session.p1.boardSetup.currentInterface = 'main';
   session.p2.boardSetup.currentInterface = 'main';
+  session.p1.boardSetup.ships = AVAILABLE_SHIPS.map((ship) => ({ ...ship, placed: false }));
+  session.p2.boardSetup.ships = AVAILABLE_SHIPS.map((ship) => ({ ...ship, placed: false }));
 
   // Mark time accepted
   session.inviteAcceptedTimestamp = new Date();

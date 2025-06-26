@@ -91,6 +91,8 @@ function isPlacementValid(session, playerKey) {
   const colIdx = selectedColumn - 1; // column in indexes
   const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0); // row in indexes
 
+  // Ensure that the ship doesn't go over the board and is not overlapping
+  // any other ships
   if (selectedOrientation === 'Horizontal') {
     if (colIdx + shipLength > BOARD_WIDTH) return false;
 
@@ -110,6 +112,26 @@ function isPlacementValid(session, playerKey) {
   }
 
   return true;
+}
+
+function generateShipPlacementBoard(session, playerKey) {
+  const { board, boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
+
+  const { id: shipId, length: shipLength } = selectedShip;
+  const colIdx = selectedColumn - 1; // column in indexes
+  const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0); // row in indexes
+
+  const isHorizontal = selectedOrientation === 'Horizontal';
+  const colInc = isHorizontal ? 1 : 0;
+  const rowInc = isHorizontal ? 0 : 1;
+
+  const boardCopy = structuredClone(board);
+  for (let i = 0; i < shipLength; i++) {
+    boardCopy[rowIdx + i * rowInc][colIdx + i * colInc] = shipId;
+  }
+
+  return boardCopy;
 }
 
 async function sendPlacementFeedback(interaction, session, playerKey) {
@@ -138,6 +160,12 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
   // If it's valid, a place button is sent
   // If it's not valid, a simple message telling why it's invalid is sent
   if (isPlacementValid(session, playerKey)) {
+    const boardWithPlacedShip = generateShipPlacementBoard(session, playerKey);
+    const updatedBoardText = boardRepresentation(boardWithPlacedShip);
+    const updatedBoardTextDisplay = new TextDisplayBuilder().setContent(
+      'This is what your board will look like:' + updatedBoardText + '\nClick below to confirm:'
+    );
+
     const placeButton = new ButtonBuilder()
       .setCustomId('confirm_place_ship_button')
       .setLabel('🎯 Place Ship!')
@@ -145,7 +173,7 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
     const actionRow = new ActionRowBuilder().addComponents(placeButton);
 
     const placeButtonMessage = await interaction.followUp({
-      components: [actionRow],
+      components: [updatedBoardTextDisplay, actionRow],
       flags: MessageFlags.IsComponentsV2,
     });
 
@@ -291,9 +319,7 @@ function createPlayerCollector(message, session, playerKey) {
 
   collector.on('end', async (collected, reason) => {
     // TODO: make user unable to do shit once timed out lol
-    if (reason === 'time')
-      await message.channel.send({ content: `nigga timed out from ${message.id}` });
-    // console.log(message);
+    if (reason === 'time') await message.channel.send({ content: `timed out from ${message.id}` });
     console.log(reason);
   });
 }
@@ -303,7 +329,6 @@ async function startBoardSetup(interaction, session) {
   const p2Channel = await interaction.client.channels.fetch(session.p2.textChannelId);
 
   const welcomeP1Component = new TextDisplayBuilder().setContent(
-    // `# Welcome to Battleship!\n## You are fighting against ${invitee}`
     `# Welcome to Battleship!\n## You are fighting against <@${session.p2.id}>`
   );
 
@@ -383,6 +408,35 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
 
       await interaction.deferUpdate();
       await sendPlacementFeedback(interaction, session, playerKey);
+      break;
+
+    case 'confirm_place_ship_button':
+      const boardWithPlacedShip = generateShipPlacementBoard(session, playerKey);
+
+      // Place ship
+      const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+      playerObj.board = boardWithPlacedShip;
+
+      const selectedShipFromShips = boardSetup.ships.find(
+        (ship) => ship.id === boardSetup.selectedShip.id
+      );
+      selectedShipFromShips.placed = true;
+
+      boardSetup.selectedShip = null;
+      boardSetup.selectedOrientation = null;
+      boardSetup.selectedRow = null;
+      boardSetup.selectedColumn = null;
+      boardSetup.currentInterface = 'main';
+
+      console.log("in handle placing interface(), at 'confirm_place_ship_button'");
+
+      await interaction.reply('ship placed ahh');
+      const mainInterfaceMessage = await interaction.channel.send({
+        components: generateMainInterface(session, playerKey),
+        flags: MessageFlags.IsComponentsV2,
+      });
+
+      createPlayerCollector(mainInterfaceMessage, session, playerKey);
       break;
     default:
       console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);

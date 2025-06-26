@@ -95,6 +95,7 @@ function newPlayerObj(player) {
     board: null,
     guesses: null,
     textChannelId: null,
+    idleTimer: null,
     boardSetup: {
       currentInterface: null,
       ships: null,
@@ -103,7 +104,10 @@ function newPlayerObj(player) {
       selectedRow: null,
       selectedColumn: null,
       placementFeedbackMessageId: null,
+      // currentInterfaceCollector: null,
+      // placementFeedbackCollector: null,
     },
+    collectors: {},
   };
 }
 
@@ -236,6 +240,53 @@ function cancelSession(session) {
   console.log(session);
 }
 
+function startIdleTimer(channel, session, playerKey) {
+  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+
+  if (playerObj.idleTimer) {
+    clearTimeout(playerObj.idleTimer);
+  }
+
+  playerObj.idleTimer = setTimeout(() => {
+    handlePlayerTimeout(channel, session, playerKey);
+  }, 10_000); // 5 minutes
+}
+
+function resetIdleTimer(channel, session, playerKey) {
+  // Simply start again
+  startIdleTimer(channel, session, playerKey);
+}
+
+async function handlePlayerTimeout(channel, session, playerKey) {
+  // Player went idle for 5 minutes
+  session.status = `${playerKey}_idle_timeout`;
+
+  // Stop their current collector
+  // const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+  // if (playerObj.currentCollector) {
+  //   playerObj.currentCollector.stop('idle_timeout');
+  // }
+
+  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+  if (playerObj.collectors) {
+    // Stop all collectors in the collectors object
+    Object.keys(playerObj.collectors).forEach((collectorKey) => {
+      const collector = playerObj.collectors[collectorKey];
+      if (collector && !collector.ended) {
+        collector.stop('timeout');
+      }
+    });
+
+    // Clear the collectors object
+    playerObj.collectors = {};
+  }
+
+  // Send timeout message
+  await channel.send('⏰ You went idle for too long. Game session ended.');
+  console.log('FROM handlePlayerTimeout() NIGGA');
+  console.log(session);
+}
+
 module.exports = {
   isInviteValid,
   createSession,
@@ -243,5 +294,7 @@ module.exports = {
   denySession,
   expireSession,
   cancelSession,
-  sessions,
+  // sessions,
+  startIdleTimer,
+  resetIdleTimer,
 };

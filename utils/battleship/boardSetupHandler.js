@@ -1,5 +1,3 @@
-const { sessions } = require('./sessionManagement');
-const { SEA, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
 const {
   TextDisplayBuilder,
   ActionRowBuilder,
@@ -11,6 +9,8 @@ const {
   SeparatorBuilder,
   SeparatorSpacingSize,
 } = require('discord.js');
+const { SEA, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
+const { startIdleTimer, resetIdleTimer } = require('./sessionManagement');
 
 function boardRepresentation(board) {
   const parts = ['```\n'];
@@ -178,7 +178,16 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
     });
 
     boardSetup.placementFeedbackMessageId = placeButtonMessage.id;
-    createPlayerCollector(placeButtonMessage, session, playerKey);
+
+    const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+    if (playerObj.collectors.placementFeedbackCollector) {
+      playerObj.collectors.placementFeedbackCollector.stop();
+    }
+    playerObj.collectors.placementFeedbackCollector = createPlayerCollector(
+      placeButtonMessage,
+      session,
+      playerKey
+    );
   } else {
     const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(
       'Your placement selection is invalid, please change your selections!'
@@ -317,11 +326,24 @@ function createPlayerCollector(message, session, playerKey) {
     }*/
   });
 
+  // collector.on('end', async (collected, reason) => {
+  //   // TODO: make user unable to do shit once timed out lol
+  //   if (reason === 'time') await message.channel.send({ content: `timed out from ${message.id}` });
+  //   console.log(reason);
+  // });
+
   collector.on('end', async (collected, reason) => {
-    // TODO: make user unable to do shit once timed out lol
-    if (reason === 'time') await message.channel.send({ content: `timed out from ${message.id}` });
-    console.log(reason);
+    const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+    // Remove the collector reference when it ends
+    Object.keys(playerObj.collectors).forEach((key) => {
+      if (playerObj.collectors[key] === collector) {
+        delete playerObj.collectors[key];
+      }
+    });
+    console.log(`Collector ended: ${reason}`);
   });
+
+  return collector;
 }
 
 async function startBoardSetup(interaction, session) {
@@ -346,8 +368,11 @@ async function startBoardSetup(interaction, session) {
     flags: MessageFlags.IsComponentsV2,
   });
 
-  createPlayerCollector(p1Message, session, 'p1');
-  createPlayerCollector(p2Message, session, 'p2');
+  session.p1.collectors.currentInterfaceCollector = createPlayerCollector(p1Message, session, 'p1');
+  session.p2.collectors.currentInterfaceCollector = createPlayerCollector(p2Message, session, 'p2');
+
+  startIdleTimer(p1Channel, session, 'p1');
+  startIdleTimer(p2Channel, session, 'p2');
 }
 
 async function startPlacingFlow(interaction, session, playerKey) {
@@ -361,10 +386,21 @@ async function startPlacingFlow(interaction, session, playerKey) {
 
   // console.log('Just finished generatingPlaceInterface()');
 
-  createPlayerCollector(placeInterfaceMessage, session, playerKey);
+  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+
+  if (playerObj.collectors.currentInterfaceCollector) {
+    playerObj.collectors.currentInterfaceCollector.stop();
+  }
+
+  playerObj.collectors.currentInterfaceCollector = createPlayerCollector(
+    placeInterfaceMessage,
+    session,
+    playerKey
+  );
 }
 
 async function handleMainInterfaceClick(interaction, session, playerKey) {
+  resetIdleTimer(interaction.channel, session, playerKey);
   const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
   if (interaction.customId === 'place_ship') {
     console.log('PLACE SHIP BABY');
@@ -375,6 +411,7 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
 }
 
 async function handlePlacingInterfaceClick(interaction, session, playerKey) {
+  resetIdleTimer(interaction.channel, session, playerKey);
   console.log(interaction.customId);
   const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
 
@@ -436,7 +473,19 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
         flags: MessageFlags.IsComponentsV2,
       });
 
-      createPlayerCollector(mainInterfaceMessage, session, playerKey);
+      if (playerObj.collectors.placementFeedbackCollector) {
+        playerObj.collectors.placementFeedbackCollector.stop();
+      }
+
+      if (playerObj.collectors.currentInterfaceCollector) {
+        playerObj.collectors.currentInterfaceCollector.stop();
+      }
+
+      playerObj.collectors.currentInterfaceCollector = createPlayerCollector(
+        mainInterfaceMessage,
+        session,
+        playerKey
+      );
       break;
     default:
       console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);

@@ -230,31 +230,37 @@ function generateMainInterface(session, playerKey) {
 function generatePlacingInterface(session, playerKey) {
   const playerObj = session[playerKey];
 
+  // Get all the ships that are not yet placed
+  const availableShips = playerObj.boardSetup.ships.filter((ship) => !ship.placed);
+
+  // Create title text display
   const titleTextDisplay = new TextDisplayBuilder().setContent(
     '# Place a ship!\nWhat your board currently looks like:'
   );
 
+  // Create board text display
   const boardTextDisplay = new TextDisplayBuilder().setContent(
     boardRepresentation(playerObj.board)
   );
 
+  // Create separator
   const separator = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
 
+  // Create ship select menu
   const shipSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('ship_select_menu')
     .setPlaceholder('Select a ship!')
     .addOptions(
-      playerObj.boardSetup.ships
-        .filter((ship) => !ship.placed)
-        .map((ship) => {
-          return new StringSelectMenuOptionBuilder()
-            .setLabel(`${ship.name} (length ${ship.length})`)
-            .setEmoji(ship.emoji)
-            .setValue(ship.name.toLowerCase());
-        })
+      availableShips.map((ship) =>
+        new StringSelectMenuOptionBuilder()
+          .setLabel(`${ship.name} (length ${ship.length})`)
+          .setEmoji(ship.emoji)
+          .setValue(ship.name.toLowerCase())
+      )
     );
   const shipActionRow = new ActionRowBuilder().addComponents(shipSelectMenu);
 
+  // Create orientation select menu
   const orientationSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('orientation_select_menu')
     .setPlaceholder('Select an orientation!')
@@ -264,32 +270,34 @@ function generatePlacingInterface(session, playerKey) {
     );
   const orientationActionRow = new ActionRowBuilder().addComponents(orientationSelectMenu);
 
-  const rowOptions = [];
+  // Create row select menu
+  const rowSelectMenuOptions = [];
   for (let row = 0; row < BOARD_HEIGHT; row++) {
     const asciiValA = 'A'.charCodeAt(0);
     const rowChar = String.fromCharCode(asciiValA + row);
     const rowSelectMenuOption = new StringSelectMenuOptionBuilder()
       .setLabel(rowChar)
       .setValue(rowChar);
-    rowOptions.push(rowSelectMenuOption);
+    rowSelectMenuOptions.push(rowSelectMenuOption);
   }
   const rowSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('row_select_menu')
     .setPlaceholder('Select a row!')
-    .addOptions(rowOptions);
+    .addOptions(rowSelectMenuOptions);
   const rowActionRow = new ActionRowBuilder().addComponents(rowSelectMenu);
 
-  const colOptions = [];
+  // Create column select menu
+  const colSelectMenuOptions = [];
   for (let col = 1; col <= BOARD_WIDTH; col++) {
     const colSelectMenuOption = new StringSelectMenuOptionBuilder()
       .setLabel(`${col}`)
       .setValue(`${col}`);
-    colOptions.push(colSelectMenuOption);
+    colSelectMenuOptions.push(colSelectMenuOption);
   }
   const colSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('col_select_menu')
     .setPlaceholder('Select a column!')
-    .addOptions(colOptions);
+    .addOptions(colSelectMenuOptions);
   const colActionRow = new ActionRowBuilder().addComponents(colSelectMenu);
 
   return [
@@ -384,15 +392,14 @@ async function startPlacingFlow(interaction, session, playerKey) {
     flags: MessageFlags.IsComponentsV2,
   });
 
-  // console.log('Just finished generatingPlaceInterface()');
+  // const playerObj = session[playerKey];
 
-  const playerObj = session[playerKey];
-
-  if (playerObj.collectors.currentInterfaceCollector) {
-    playerObj.collectors.currentInterfaceCollector.stop();
+  const { collectors } = session[playerKey];
+  if (collectors.currentInterfaceCollector) {
+    collectors.currentInterfaceCollector.stop();
   }
 
-  playerObj.collectors.currentInterfaceCollector = createPlayerCollector(
+  collectors.currentInterfaceCollector = createPlayerCollector(
     placeInterfaceMessage,
     session,
     playerKey
@@ -401,12 +408,38 @@ async function startPlacingFlow(interaction, session, playerKey) {
 
 async function handleMainInterfaceClick(interaction, session, playerKey) {
   resetIdleTimer(interaction.channel, session, playerKey);
-  const { boardSetup } = session[playerKey];
+  const { boardSetup, collectors } = session[playerKey];
   if (interaction.customId === 'place_ship') {
-    console.log('PLACE SHIP BABY');
-    boardSetup.currentInterface = 'placing';
-    console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
-    await startPlacingFlow(interaction, session, playerKey);
+    const { ships } = boardSetup;
+    const shipsToBePlaced = ships.filter((ship) => !ship.placed);
+
+    // Tell that there are no more ships to be palced
+    if (shipsToBePlaced.length === 0) {
+      await interaction.reply('You have no more ships to be placed 🤪');
+
+      if (collectors.currentInterfaceCollector) {
+        collectors.currentInterfaceCollector.stop();
+      }
+
+      const mainInterfaceMessage = await interaction.channel.send({
+        components: generateMainInterface(session, playerKey),
+        flags: MessageFlags.IsComponentsV2,
+      });
+
+      collectors.currentInterfaceCollector = createPlayerCollector(
+        mainInterfaceMessage,
+        session,
+        playerKey
+      );
+    } else {
+      console.log('PLACE SHIP BABY');
+      boardSetup.currentInterface = 'placing';
+      console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
+      await startPlacingFlow(interaction, session, playerKey);
+    }
+  } else {
+    // For future custom ids
+    console.log(`nah wtf is this custom id? ${interaction.customId}`);
   }
 }
 

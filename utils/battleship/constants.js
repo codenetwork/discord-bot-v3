@@ -3,7 +3,7 @@ const BOARD_HEIGHT = 10;
 
 const SEA = 0;
 
-const AVAILABLE_SHIPS = [
+const SHIPS = [
   {
     id: 1,
     name: 'Carrier',
@@ -34,12 +34,11 @@ const AVAILABLE_SHIPS = [
     length: 2,
     emoji: '🚀',
   },
-  ,
 ];
 
 module.exports = {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   SEA,
-  AVAILABLE_SHIPS,
+  SHIPS,
 };

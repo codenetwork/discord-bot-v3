@@ -78,7 +78,7 @@ function boardRepresentation(board) {
 }
 
 function isPlacementValid(session, playerKey) {
-  const { board, boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+  const { board, boardSetup } = session[playerKey];
 
   const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
 
@@ -115,7 +115,7 @@ function isPlacementValid(session, playerKey) {
 }
 
 function generateShipPlacementBoard(session, playerKey) {
-  const { board, boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+  const { board, boardSetup } = session[playerKey];
   const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
 
   const { id: shipId, length: shipLength } = selectedShip;
@@ -135,7 +135,7 @@ function generateShipPlacementBoard(session, playerKey) {
 }
 
 async function sendPlacementFeedback(interaction, session, playerKey) {
-  const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+  const { boardSetup } = session[playerKey];
 
   const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
 
@@ -179,7 +179,7 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
 
     boardSetup.placementFeedbackMessageId = placeButtonMessage.id;
 
-    const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+    const playerObj = session[playerKey];
     if (playerObj.collectors.placementFeedbackCollector) {
       playerObj.collectors.placementFeedbackCollector.stop();
     }
@@ -203,7 +203,7 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
 }
 
 function generateMainInterface(session, playerKey) {
-  const board = playerKey === 'p1' ? session.p1.board : session.p2.board;
+  const board = session[playerKey].board;
 
   const boardAsText = boardRepresentation(board);
   const boardTextDisplayComponent = new TextDisplayBuilder().setContent(
@@ -228,7 +228,7 @@ function generateMainInterface(session, playerKey) {
 }
 
 function generatePlacingInterface(session, playerKey) {
-  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+  const playerObj = session[playerKey];
 
   const titleTextDisplay = new TextDisplayBuilder().setContent(
     '# Place a ship!\nWhat your board currently looks like:'
@@ -304,7 +304,7 @@ function generatePlacingInterface(session, playerKey) {
 }
 
 function createPlayerCollector(message, session, playerKey) {
-  const playerId = playerKey === 'p1' ? session.p1.id : session.p2.id;
+  const playerId = session[playerKey].id;
 
   const collector = message.createMessageComponentCollector({
     filter: (i) => i.user.id === playerId,
@@ -312,7 +312,7 @@ function createPlayerCollector(message, session, playerKey) {
   });
 
   collector.on('collect', async (interaction) => {
-    const { currentInterface } = playerKey === 'p1' ? session.p1.boardSetup : session.p2.boardSetup;
+    const { currentInterface } = session[playerKey].boardSetup;
     console.log(currentInterface);
 
     if (currentInterface === 'main') {
@@ -333,7 +333,7 @@ function createPlayerCollector(message, session, playerKey) {
   // });
 
   collector.on('end', async (collected, reason) => {
-    const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+    const playerObj = session[playerKey];
     // Remove the collector reference when it ends
     Object.keys(playerObj.collectors).forEach((key) => {
       if (playerObj.collectors[key] === collector) {
@@ -386,7 +386,7 @@ async function startPlacingFlow(interaction, session, playerKey) {
 
   // console.log('Just finished generatingPlaceInterface()');
 
-  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+  const playerObj = session[playerKey];
 
   if (playerObj.collectors.currentInterfaceCollector) {
     playerObj.collectors.currentInterfaceCollector.stop();
@@ -401,7 +401,7 @@ async function startPlacingFlow(interaction, session, playerKey) {
 
 async function handleMainInterfaceClick(interaction, session, playerKey) {
   resetIdleTimer(interaction.channel, session, playerKey);
-  const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+  const { boardSetup } = session[playerKey];
   if (interaction.customId === 'place_ship') {
     console.log('PLACE SHIP BABY');
     boardSetup.currentInterface = 'placing';
@@ -413,7 +413,7 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
 async function handlePlacingInterfaceClick(interaction, session, playerKey) {
   resetIdleTimer(interaction.channel, session, playerKey);
   console.log(interaction.customId);
-  const { boardSetup } = playerKey === 'p1' ? session.p1 : session.p2;
+  const { boardSetup } = session[playerKey];
 
   switch (interaction.customId) {
     case 'ship_select_menu':
@@ -451,7 +451,7 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
       const boardWithPlacedShip = generateShipPlacementBoard(session, playerKey);
 
       // Place ship
-      const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+      const playerObj = session[playerKey];
       playerObj.board = boardWithPlacedShip;
 
       const selectedShipFromShips = boardSetup.ships.find(

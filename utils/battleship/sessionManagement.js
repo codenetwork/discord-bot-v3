@@ -104,8 +104,6 @@ function newPlayerObj(player) {
       selectedRow: null,
       selectedColumn: null,
       placementFeedbackMessageId: null,
-      // currentInterfaceCollector: null,
-      // placementFeedbackCollector: null,
     },
     collectors: {},
   };
@@ -241,7 +239,7 @@ function cancelSession(session) {
 }
 
 function startIdleTimer(channel, session, playerKey) {
-  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+  const playerObj = session[playerKey];
 
   if (playerObj.idleTimer) {
     clearTimeout(playerObj.idleTimer);
@@ -249,7 +247,7 @@ function startIdleTimer(channel, session, playerKey) {
 
   playerObj.idleTimer = setTimeout(() => {
     handlePlayerTimeout(channel, session, playerKey);
-  }, 10_000); // 5 minutes
+  }, 300_000); // 5 minutes
 }
 
 function resetIdleTimer(channel, session, playerKey) {
@@ -267,7 +265,7 @@ async function handlePlayerTimeout(channel, session, playerKey) {
   //   playerObj.currentCollector.stop('idle_timeout');
   // }
 
-  const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
+  const playerObj = session[playerKey];
   if (playerObj.collectors) {
     // Stop all collectors in the collectors object
     Object.keys(playerObj.collectors).forEach((collectorKey) => {
@@ -294,7 +292,7 @@ module.exports = {
   denySession,
   expireSession,
   cancelSession,
-  // sessions,
+  sessions,
   startIdleTimer,
   resetIdleTimer,
 };

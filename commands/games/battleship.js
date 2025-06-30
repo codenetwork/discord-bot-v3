@@ -16,7 +16,7 @@ const {
   cancelSession,
   sessions,
 } = require('../../utils/battleship/sessionManagement.js');
-const { startBoardSetup } = require('../../utils/battleship/boardSetupHandler.js');
+const { startBoardSetup } = require('../../utils/battleship/boardSetup.js');
 
 // TODO:
 // 1. Create categories ✅

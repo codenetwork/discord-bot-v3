@@ -11,6 +11,7 @@ const {
 } = require('discord.js');
 const { SEA, SEA_ICON, SHIPS, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
 const { startIdleTimer, resetIdleTimer } = require('./sessionManagement');
+const { createCollector } = require('./interactionHandlers');
 
 function boardRepresentation(board) {
   const parts = ['```\n'];
@@ -183,10 +184,11 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
     if (playerObj.collectors.placementFeedbackCollector) {
       playerObj.collectors.placementFeedbackCollector.stop();
     }
-    playerObj.collectors.placementFeedbackCollector = createPlayerCollector(
+    playerObj.collectors.placementFeedbackCollector = createCollector(
       placeButtonMessage,
       session,
-      playerKey
+      playerKey,
+      handleOnCollect
     );
   } else {
     const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(
@@ -311,48 +313,48 @@ function generatePlacingInterface(session, playerKey) {
   ];
 }
 
-function createPlayerCollector(message, session, playerKey) {
-  const playerId = session[playerKey].id;
+// function createPlayerCollector(message, session, playerKey) {
+//   const playerId = session[playerKey].id;
 
-  const collector = message.createMessageComponentCollector({
-    filter: (i) => i.user.id === playerId,
-    time: 300_000, // 5 minutes
-  });
+//   const collector = message.createMessageComponentCollector({
+//     filter: (i) => i.user.id === playerId,
+//     time: 300_000, // 5 minutes
+//   });
 
-  collector.on('collect', async (interaction) => {
-    const { currentInterface } = session[playerKey].boardSetup;
-    console.log(currentInterface);
+//   collector.on('collect', async (interaction) => {
+//     const { currentInterface } = session[playerKey].boardSetup;
+//     console.log(currentInterface);
 
-    if (currentInterface === 'main') {
-      console.log("Nigga i'm at main");
-      await handleMainInterfaceClick(interaction, session, playerKey);
-    } else if (currentInterface === 'placing') {
-      console.log("Nigga i'm at placing");
-      await handlePlacingInterfaceClick(interaction, session, playerKey);
-    } /*else if (ace === 'removing') {
-      await handleRemovingInterfaceClick();
-    }*/
-  });
+//     if (currentInterface === 'main') {
+//       console.log("Nigga i'm at main");
+//       await handleMainInterfaceClick(interaction, session, playerKey);
+//     } else if (currentInterface === 'placing') {
+//       console.log("Nigga i'm at placing");
+//       await handlePlacingInterfaceClick(interaction, session, playerKey);
+//     } /*else if (ace === 'removing') {
+//       await handleRemovingInterfaceClick();
+//     }*/
+//   });
 
-  // collector.on('end', async (collected, reason) => {
-  //   // TODO: make user unable to do shit once timed out lol
-  //   if (reason === 'time') await message.channel.send({ content: `timed out from ${message.id}` });
-  //   console.log(reason);
-  // });
+//   // collector.on('end', async (collected, reason) => {
+//   //   // TODO: make user unable to do shit once timed out lol
+//   //   if (reason === 'time') await message.channel.send({ content: `timed out from ${message.id}` });
+//   //   console.log(reason);
+//   // });
 
-  collector.on('end', async (collected, reason) => {
-    const playerObj = session[playerKey];
-    // Remove the collector reference when it ends
-    Object.keys(playerObj.collectors).forEach((key) => {
-      if (playerObj.collectors[key] === collector) {
-        delete playerObj.collectors[key];
-      }
-    });
-    console.log(`Collector ended: ${reason}`);
-  });
+//   collector.on('end', async (collected, reason) => {
+//     const playerObj = session[playerKey];
+//     // Remove the collector reference when it ends
+//     Object.keys(playerObj.collectors).forEach((key) => {
+//       if (playerObj.collectors[key] === collector) {
+//         delete playerObj.collectors[key];
+//       }
+//     });
+//     console.log(`Collector ended: ${reason}`);
+//   });
 
-  return collector;
-}
+//   return collector;
+// }
 
 async function startBoardSetup(interaction, session) {
   const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
@@ -376,8 +378,18 @@ async function startBoardSetup(interaction, session) {
     flags: MessageFlags.IsComponentsV2,
   });
 
-  session.p1.collectors.currentInterfaceCollector = createPlayerCollector(p1Message, session, 'p1');
-  session.p2.collectors.currentInterfaceCollector = createPlayerCollector(p2Message, session, 'p2');
+  session.p1.collectors.currentInterfaceCollector = createCollector(
+    p1Message,
+    session,
+    'p1',
+    handleOnCollect
+  );
+  session.p2.collectors.currentInterfaceCollector = createCollector(
+    p2Message,
+    session,
+    'p2',
+    handleOnCollect
+  );
 
   startIdleTimer(p1Channel, session, 'p1');
   startIdleTimer(p2Channel, session, 'p2');
@@ -399,11 +411,25 @@ async function startPlacingFlow(interaction, session, playerKey) {
     collectors.currentInterfaceCollector.stop();
   }
 
-  collectors.currentInterfaceCollector = createPlayerCollector(
+  collectors.currentInterfaceCollector = createCollector(
     placeInterfaceMessage,
     session,
-    playerKey
+    playerKey,
+    handleOnCollect
   );
+}
+
+async function handleOnCollect(interaction, session, playerKey) {
+  const { currentInterface } = session[playerKey].boardSetup;
+  if (currentInterface === 'main') {
+    console.log("Nigga i'm at main");
+    await handleMainInterfaceClick(interaction, session, playerKey);
+  } else if (currentInterface === 'placing') {
+    console.log("Nigga i'm at placing");
+    await handlePlacingInterfaceClick(interaction, session, playerKey);
+  } /*else if (ace === 'removing') {
+      await handleRemovingInterfaceClick();
+    }*/
 }
 
 async function handleMainInterfaceClick(interaction, session, playerKey) {
@@ -426,10 +452,11 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
         flags: MessageFlags.IsComponentsV2,
       });
 
-      collectors.currentInterfaceCollector = createPlayerCollector(
+      collectors.currentInterfaceCollector = createCollector(
         mainInterfaceMessage,
         session,
-        playerKey
+        playerKey,
+        handleOnCollect
       );
     } else {
       console.log('PLACE SHIP BABY');
@@ -514,10 +541,11 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
         playerObj.collectors.currentInterfaceCollector.stop();
       }
 
-      playerObj.collectors.currentInterfaceCollector = createPlayerCollector(
+      playerObj.collectors.currentInterfaceCollector = createCollector(
         mainInterfaceMessage,
         session,
-        playerKey
+        playerKey,
+        handleOnCollect
       );
       break;
     default:

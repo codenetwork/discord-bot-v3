@@ -104,6 +104,8 @@ function newPlayerObj(player) {
       selectedRow: null,
       selectedColumn: null,
       placementFeedbackMessageId: null,
+      selectedRemoveShip: null,
+      removalFeedbackMessageId: null,
     },
     collectors: {},
   };

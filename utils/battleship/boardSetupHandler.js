@@ -9,7 +9,7 @@ const {
   SeparatorBuilder,
   SeparatorSpacingSize,
 } = require('discord.js');
-const { SEA, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
+const { SEA, SEA_ICON, SHIPS, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
 const { startIdleTimer, resetIdleTimer } = require('./sessionManagement');
 
 function boardRepresentation(board) {
@@ -46,7 +46,7 @@ function boardRepresentation(board) {
     // Row content
     parts.push(`${rowChar} │`);
     row.forEach((cell) => {
-      let icon = cell === SEA ? '≈' : '⚓';
+      const icon = SHIPS.find((ship) => ship.id === cell)?.icon || SEA_ICON;
       parts.push(` ${icon} │`);
     });
     parts.push('\n');

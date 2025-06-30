@@ -2,6 +2,7 @@ const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 10;
 
 const SEA = 0;
+const SEA_ICON = '≈';
 
 const SHIPS = [
   {
@@ -9,30 +10,35 @@ const SHIPS = [
     name: 'Carrier',
     length: 5,
     emoji: '🛳',
+    icon: '⚓',
   },
   {
     id: 2,
     name: 'Battleship',
     length: 4,
     emoji: '⚔️',
+    icon: '■',
   },
   {
     id: 3,
-    name: 'Cruiser',
+    name: 'Destroyer',
     length: 3,
-    emoji: '🚤',
+    emoji: '🚢',
+    icon: '▲',
   },
   {
     id: 4,
     name: 'Submarine',
     length: 3,
-    emoji: '🚇',
+    emoji: '🫧',
+    icon: '●',
   },
   {
     id: 5,
-    name: 'Destroyer',
+    name: 'Patrol Boat',
     length: 2,
-    emoji: '🚀',
+    emoji: '🚤',
+    icon: '★',
   },
 ];
 
@@ -40,5 +46,6 @@ module.exports = {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   SEA,
+  SEA_ICON,
   SHIPS,
 };

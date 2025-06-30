@@ -255,7 +255,7 @@ function generatePlacingInterface(session, playerKey) {
     .addOptions(
       availableShips.map((ship) =>
         new StringSelectMenuOptionBuilder()
-          .setLabel(`${ship.name} (length ${ship.length})`)
+          .setLabel(`${ship.icon} ${ship.name} (length ${ship.length})`)
           .setEmoji(ship.emoji)
           .setValue(ship.name.toLowerCase())
       )

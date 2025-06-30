@@ -10,7 +10,7 @@ const SHIPS = [
     name: 'Carrier',
     length: 5,
     emoji: '🛳',
-    icon: '⚓',
+    icon: '◆',
   },
   {
     id: 2,

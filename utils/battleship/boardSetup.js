@@ -140,6 +140,7 @@ function generateShipRemovalBoard(session, playerKey) {
   const { selectedRemoveShip } = boardSetup;
   const { id: removeShipId } = selectedRemoveShip;
 
+  // Delete ship by iterating every cell
   const boardCopy = structuredClone(board);
   for (let i = 0; i < board.length; i++) {
     for (let j = 0; j < board[i].length; j++) {
@@ -152,128 +153,6 @@ function generateShipRemovalBoard(session, playerKey) {
   return boardCopy;
 }
 
-async function sendPlacementFeedback(interaction, session, playerKey) {
-  const { boardSetup } = session[playerKey];
-
-  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
-
-  // If any of the selections are incomplete
-  if (!selectedShip || !selectedOrientation || !selectedRow || !selectedColumn) {
-    return;
-  }
-
-  // Delete previous button message if it exists
-  if (boardSetup.placementFeedbackMessageId) {
-    try {
-      const oldMessage = await interaction.channel.messages.fetch(
-        boardSetup.placementFeedbackMessageId
-      );
-      await oldMessage.delete();
-    } catch (error) {
-      // Message might already be deleted, ignore error
-    }
-  }
-
-  // Send a message saying whether their placement was valid or not
-  // If it's valid, a place button is sent
-  // If it's not valid, a simple message telling why it's invalid is sent
-  if (isPlacementValid(session, playerKey)) {
-    const boardWithPlacedShip = generateShipPlacementBoard(session, playerKey);
-    const updatedBoardText = boardRepresentation(boardWithPlacedShip);
-    const updatedBoardTextDisplay = new TextDisplayBuilder().setContent(
-      'This is what your board will look like:' + updatedBoardText + '\nClick below to confirm:'
-    );
-
-    const placeButton = new ButtonBuilder()
-      .setCustomId('confirm_place_ship_button')
-      .setLabel('Place Ship!')
-      .setEmoji('🎯')
-      .setStyle(ButtonStyle.Success);
-    const actionRow = new ActionRowBuilder().addComponents(placeButton);
-
-    const placeButtonMessage = await interaction.followUp({
-      components: [updatedBoardTextDisplay, actionRow],
-      flags: MessageFlags.IsComponentsV2,
-    });
-
-    boardSetup.placementFeedbackMessageId = placeButtonMessage.id;
-
-    const playerObj = session[playerKey];
-    if (playerObj.collectors.placementFeedbackCollector) {
-      playerObj.collectors.placementFeedbackCollector.stop();
-    }
-    playerObj.collectors.placementFeedbackCollector = createCollector(
-      placeButtonMessage,
-      session,
-      playerKey,
-      handleOnCollect
-    );
-  } else {
-    const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(
-      'Your placement selection is invalid, please change your selections!'
-    );
-
-    const invalidPlacementMessage = await interaction.followUp({
-      components: [invalidPlacementTextDisplay],
-      flags: MessageFlags.IsComponentsV2,
-    });
-
-    boardSetup.placementFeedbackMessageId = invalidPlacementMessage.id;
-  }
-}
-
-async function sendRemovalFeedback(interaction, session, playerKey) {
-  const { boardSetup } = session[playerKey];
-  const { selectedRemoveShip } = boardSetup;
-
-  // If for some reason nothing was selected (but this should never happen)
-  if (!selectedRemoveShip) {
-    return;
-  }
-
-  if (boardSetup.removalFeedbackMessageId) {
-    try {
-      const oldMessage = await interaction.channel.messages.fetch(
-        boardSetup.removalFeedbackMessageId
-      );
-      await oldMessage.delete();
-    } catch (error) {
-      // Message might already be deleted, ignore error
-    }
-  }
-
-  const boardWithRemovedShip = generateShipRemovalBoard(session, playerKey);
-  const updatedBoardText = boardRepresentation(boardWithRemovedShip);
-  const updatedBoardTextDisplay = new TextDisplayBuilder().setContent(
-    'This is what your board will look like:' + updatedBoardText + '\nClick below to confirm:'
-  );
-
-  const removeButton = new ButtonBuilder()
-    .setCustomId('confirm_remove_ship_button')
-    .setLabel('Remove Ship!')
-    .setEmoji('🎯')
-    .setStyle(ButtonStyle.Success);
-  const actionRow = new ActionRowBuilder().addComponents(removeButton);
-
-  const removeButtonMessage = await interaction.followUp({
-    components: [updatedBoardTextDisplay, actionRow],
-    flags: MessageFlags.IsComponentsV2,
-  });
-
-  boardSetup.removalFeedbackMessageId = removeButtonMessage.id;
-
-  const { collectors } = session[playerKey];
-  if (collectors.removalFeedbackCollector) {
-    collectors.removalFeedbackCollector.stop();
-  }
-  collectors.removalFeedbackCollector = createCollector(
-    removeButtonMessage,
-    session,
-    playerKey,
-    handleOnCollect
-  );
-}
-
 function generateMainInterface(session, playerKey) {
   const board = session[playerKey].board;
 
@@ -282,25 +161,27 @@ function generateMainInterface(session, playerKey) {
     'Your current board:\n' + boardAsText
   );
 
+  // Create place ship button
   const placeShipButton = new ButtonBuilder()
     .setCustomId('place_ship')
     .setLabel('Place Ship')
     .setEmoji('🚢')
     .setStyle(ButtonStyle.Primary);
 
+  // Create remove ship button
   const removeShipButton = new ButtonBuilder()
     .setCustomId('remove_ship')
     .setLabel('Remove Ship')
     .setEmoji('❌')
     .setStyle(ButtonStyle.Primary);
 
-  const row = new ActionRowBuilder().addComponents(placeShipButton, removeShipButton);
+  const actionRow = new ActionRowBuilder().addComponents(placeShipButton, removeShipButton);
 
-  return [boardTextDisplayComponent, row];
+  return [boardTextDisplayComponent, actionRow];
 }
 
 function generatePlacingInterface(session, playerKey) {
-  const playerObj = session[playerKey];
+  const { board, boardSetup } = session[playerKey];
 
   // Create title text display
   const titleTextDisplay = new TextDisplayBuilder().setContent(
@@ -308,15 +189,13 @@ function generatePlacingInterface(session, playerKey) {
   );
 
   // Create board text display
-  const boardTextDisplay = new TextDisplayBuilder().setContent(
-    boardRepresentation(playerObj.board)
-  );
+  const boardTextDisplay = new TextDisplayBuilder().setContent(boardRepresentation(board));
 
   // Create separator
   const separator = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
 
   // Create ship select menu
-  const availableShips = playerObj.boardSetup.ships.filter((ship) => !ship.placed);
+  const availableShips = boardSetup.ships.filter((ship) => !ship.placed);
   const shipSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('ship_select_menu')
     .setPlaceholder('Select a ship!')
@@ -382,7 +261,7 @@ function generatePlacingInterface(session, playerKey) {
 }
 
 function generateRemovingInterface(session, playerKey) {
-  const playerObj = session[playerKey];
+  const { board, boardSetup } = session[playerKey];
 
   // Create title text display
   const titleTextDisplay = new TextDisplayBuilder().setContent(
@@ -390,12 +269,10 @@ function generateRemovingInterface(session, playerKey) {
   );
 
   // Create board text display
-  const boardTextDisplay = new TextDisplayBuilder().setContent(
-    boardRepresentation(playerObj.board)
-  );
+  const boardTextDisplay = new TextDisplayBuilder().setContent(boardRepresentation(board));
 
   // Create remove ship select menu
-  const placedShips = playerObj.boardSetup.ships.filter((ship) => ship.placed);
+  const placedShips = boardSetup.ships.filter((ship) => ship.placed);
   const removeShipSelectMenu = new StringSelectMenuBuilder()
     .setCustomId('remove_ship_select_menu')
     .setPlaceholder('Remove a ship!')
@@ -412,71 +289,151 @@ function generateRemovingInterface(session, playerKey) {
   return [titleTextDisplay, boardTextDisplay, removeShipActionRow];
 }
 
-// function createPlayerCollector(message, session, playerKey) {
-//   const playerId = session[playerKey].id;
+async function sendPlacementFeedback(interaction, session, playerKey) {
+  const { boardSetup } = session[playerKey];
 
-//   const collector = message.createMessageComponentCollector({
-//     filter: (i) => i.user.id === playerId,
-//     time: 300_000, // 5 minutes
-//   });
+  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
 
-//   collector.on('collect', async (interaction) => {
-//     const { currentInterface } = session[playerKey].boardSetup;
-//     console.log(currentInterface);
+  // If any of the selections are incomplete
+  if (!selectedShip || !selectedOrientation || !selectedRow || !selectedColumn) {
+    return;
+  }
 
-//     if (currentInterface === 'main') {
-//       console.log("Nigga i'm at main");
-//       await handleMainInterfaceClick(interaction, session, playerKey);
-//     } else if (currentInterface === 'placing') {
-//       console.log("Nigga i'm at placing");
-//       await handlePlacingInterfaceClick(interaction, session, playerKey);
-//     } /*else if (ace === 'removing') {
-//       await handleRemovingInterfaceClick();
-//     }*/
-//   });
+  // Delete previous button message if it exists
+  if (boardSetup.placementFeedbackMessageId) {
+    try {
+      const oldMessage = await interaction.channel.messages.fetch(
+        boardSetup.placementFeedbackMessageId
+      );
+      await oldMessage.delete();
+    } catch (error) {
+      // Message might already be deleted, ignore error
+    }
+  }
 
-//   // collector.on('end', async (collected, reason) => {
-//   //   // TODO: make user unable to do shit once timed out lol
-//   //   if (reason === 'time') await message.channel.send({ content: `timed out from ${message.id}` });
-//   //   console.log(reason);
-//   // });
+  // Send a message saying whether their placement was valid or not
+  // If it's valid, a place button is sent
+  // If it's not valid, a simple message telling why it's invalid is sent
+  if (isPlacementValid(session, playerKey)) {
+    const boardWithPlacedShip = generateShipPlacementBoard(session, playerKey);
+    const updatedBoardText = boardRepresentation(boardWithPlacedShip);
+    const updatedBoardTextDisplay = new TextDisplayBuilder().setContent(
+      'This is what your board will look like:' + updatedBoardText + '\nClick below to confirm:'
+    );
 
-//   collector.on('end', async (collected, reason) => {
-//     const playerObj = session[playerKey];
-//     // Remove the collector reference when it ends
-//     Object.keys(playerObj.collectors).forEach((key) => {
-//       if (playerObj.collectors[key] === collector) {
-//         delete playerObj.collectors[key];
-//       }
-//     });
-//     console.log(`Collector ended: ${reason}`);
-//   });
+    const placeButton = new ButtonBuilder()
+      .setCustomId('confirm_place_ship_button')
+      .setLabel('Place Ship!')
+      .setEmoji('🎯')
+      .setStyle(ButtonStyle.Success);
+    const actionRow = new ActionRowBuilder().addComponents(placeButton);
 
-//   return collector;
-// }
+    const placeButtonMessage = await interaction.followUp({
+      components: [updatedBoardTextDisplay, actionRow],
+      flags: MessageFlags.IsComponentsV2,
+    });
+    boardSetup.placementFeedbackMessageId = placeButtonMessage.id;
+
+    // Stop previous collector
+    const { collectors } = session[playerKey];
+    if (collectors.placementFeedbackCollector) {
+      collectors.placementFeedbackCollector.stop();
+    }
+    collectors.placementFeedbackCollector = createCollector(
+      placeButtonMessage,
+      session,
+      playerKey,
+      handleOnCollect
+    );
+  } else {
+    const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(
+      'Your placement selection is invalid, please change your selections!'
+    );
+
+    const invalidPlacementMessage = await interaction.followUp({
+      components: [invalidPlacementTextDisplay],
+      flags: MessageFlags.IsComponentsV2,
+    });
+
+    boardSetup.placementFeedbackMessageId = invalidPlacementMessage.id;
+  }
+}
+
+async function sendRemovalFeedback(interaction, session, playerKey) {
+  const { boardSetup } = session[playerKey];
+  const { selectedRemoveShip } = boardSetup;
+
+  // If for some reason nothing was selected (but this should never happen)
+  if (!selectedRemoveShip) {
+    return;
+  }
+
+  if (boardSetup.removalFeedbackMessageId) {
+    try {
+      const oldMessage = await interaction.channel.messages.fetch(
+        boardSetup.removalFeedbackMessageId
+      );
+      await oldMessage.delete();
+    } catch (error) {
+      // Message might already be deleted, ignore error
+    }
+  }
+
+  const boardWithRemovedShip = generateShipRemovalBoard(session, playerKey);
+  const updatedBoardText = boardRepresentation(boardWithRemovedShip);
+  const updatedBoardTextDisplay = new TextDisplayBuilder().setContent(
+    'This is what your board will look like:' + updatedBoardText + '\nClick below to confirm:'
+  );
+
+  const removeButton = new ButtonBuilder()
+    .setCustomId('confirm_remove_ship_button')
+    .setLabel('Remove Ship!')
+    .setEmoji('🎯')
+    .setStyle(ButtonStyle.Success);
+  const actionRow = new ActionRowBuilder().addComponents(removeButton);
+
+  const removeButtonMessage = await interaction.followUp({
+    components: [updatedBoardTextDisplay, actionRow],
+    flags: MessageFlags.IsComponentsV2,
+  });
+  boardSetup.removalFeedbackMessageId = removeButtonMessage.id;
+
+  // Stop previous collector
+  const { collectors } = session[playerKey];
+  if (collectors.removalFeedbackCollector) {
+    collectors.removalFeedbackCollector.stop();
+  }
+  collectors.removalFeedbackCollector = createCollector(
+    removeButtonMessage,
+    session,
+    playerKey,
+    handleOnCollect
+  );
+}
 
 async function startBoardSetup(interaction, session) {
   const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
   const p2Channel = await interaction.client.channels.fetch(session.p2.textChannelId);
 
+  // Send initial message to p1
   const welcomeP1Component = new TextDisplayBuilder().setContent(
     `# Welcome to Battleship!\n## You are fighting against <@${session.p2.id}>`
   );
-
   const p1Message = await p1Channel.send({
     components: [welcomeP1Component, ...generateMainInterface(session, 'p1')],
     flags: MessageFlags.IsComponentsV2,
   });
 
+  // Send initial message to p2
   const welcomeP2Component = new TextDisplayBuilder().setContent(
     `# Welcome to Battleship!\n## You are fighting against <@${session.p1.id}>`
   );
-
   const p2Message = await p2Channel.send({
     components: [welcomeP2Component, ...generateMainInterface(session, 'p2')],
     flags: MessageFlags.IsComponentsV2,
   });
 
+  // Create collectors for both messages
   session.p1.collectors.currentInterfaceCollector = createCollector(
     p1Message,
     session,
@@ -490,6 +447,7 @@ async function startBoardSetup(interaction, session) {
     handleOnCollect
   );
 
+  // Start timer for both channels
   startIdleTimer(p1Channel, session, 'p1');
   startIdleTimer(p2Channel, session, 'p2');
 }
@@ -503,11 +461,11 @@ async function startPlacingFlow(interaction, session, playerKey) {
     flags: MessageFlags.IsComponentsV2,
   });
 
+  // Stop previous collector
   const { collectors } = session[playerKey];
   if (collectors.currentInterfaceCollector) {
     collectors.currentInterfaceCollector.stop();
   }
-
   collectors.currentInterfaceCollector = createCollector(
     placeInterfaceMessage,
     session,
@@ -520,11 +478,11 @@ async function startRemovingFlow(interaction, session, playerKey) {
   // Acknowledge "Remove Ship" pressed immediately
   await interaction.reply('Opening ship removal...');
 
+  // Stop previous collector
   const removeInterfaceMessage = await interaction.channel.send({
     components: generateRemovingInterface(session, playerKey),
     flags: MessageFlags.IsComponentsV2,
   });
-
   const { collectors } = session[playerKey];
   if (collectors.currentInterfaceCollector) {
     collectors.currentInterfaceCollector.stop();
@@ -540,6 +498,8 @@ async function startRemovingFlow(interaction, session, playerKey) {
 
 async function handleOnCollect(interaction, session, playerKey) {
   const { currentInterface } = session[playerKey].boardSetup;
+
+  resetIdleTimer(interaction.channel, session, playerKey);
   if (currentInterface === 'main') {
     console.log("Nigga i'm at main");
     await handleMainInterfaceClick(interaction, session, playerKey);
@@ -552,7 +512,6 @@ async function handleOnCollect(interaction, session, playerKey) {
 }
 
 async function handleMainInterfaceClick(interaction, session, playerKey) {
-  resetIdleTimer(interaction.channel, session, playerKey);
   const { boardSetup, collectors } = session[playerKey];
   const { ships } = boardSetup;
   if (interaction.customId === 'place_ship') {
@@ -616,7 +575,6 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
 }
 
 async function handlePlacingInterfaceClick(interaction, session, playerKey) {
-  resetIdleTimer(interaction.channel, session, playerKey);
   console.log(interaction.customId);
   const { boardSetup } = session[playerKey];
 
@@ -702,7 +660,6 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
 }
 
 async function handleRemovingInterfaceClick(interaction, session, playerKey) {
-  resetIdleTimer(interaction.channel, session, playerKey);
   const { boardSetup } = session[playerKey];
 
   switch (interaction.customId) {

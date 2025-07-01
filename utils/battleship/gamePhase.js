@@ -8,7 +8,15 @@ const {
   ButtonStyle,
 } = require('discord.js');
 const { createCollector } = require('./interactionHandlers');
-const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH, MOVE_RESULT, SHIPS } = require('./constants');
+const {
+  SEA,
+  SEA_ICON,
+  GUESS,
+  BOARD_HEIGHT,
+  BOARD_WIDTH,
+  MOVE_RESULT,
+  SHIPS,
+} = require('./constants');
 const { startIdleTimer, createGamePhaseInSession, resetIdleTimer } = require('./sessionManagement');
 
 function isShipSunk(opponentBoard, guesses, shipId) {
@@ -82,6 +90,92 @@ function guessesRepresentation(guesses, opponentBoard) {
       } else {
         // Fallback for unexpected values
         icon = '?';
+      }
+
+      parts.push(` ${icon} │`);
+    });
+    parts.push('\n');
+
+    // Row separator (except for last row)
+    if (idx < height - 1) {
+      parts.push('  ├');
+      for (let i = 0; i < width; i++) {
+        parts.push('───');
+        if (i < width - 1) {
+          parts.push('┼');
+        }
+      }
+      parts.push('┤\n');
+    }
+  });
+
+  // Bottom border
+  parts.push('  └');
+  for (let i = 0; i < width; i++) {
+    parts.push('───');
+    if (i < width - 1) {
+      parts.push('┴');
+    }
+  }
+  parts.push('┘\n```');
+
+  return parts.join('');
+}
+
+function defenderBoardWithDamage(attackerGuesses, defenderBoard) {
+  const parts = ['```\n'];
+  const width = defenderBoard[0].length;
+  const height = defenderBoard.length;
+
+  // Column headers
+  parts.push('    ');
+  for (let i = 1; i <= width; i++) {
+    if (i < 10) {
+      parts.push(`${i}   `);
+    } else {
+      parts.push(`${i}  `);
+    }
+  }
+  parts.push('\n');
+
+  // Top border
+  parts.push('  ┌');
+  for (let i = 0; i < width; i++) {
+    parts.push('───');
+    if (i < width - 1) {
+      parts.push('┬');
+    }
+  }
+  parts.push('┐\n');
+
+  // Board rows
+  defenderBoard.forEach((row, idx) => {
+    const asciiValA = 'A'.charCodeAt(0);
+    const rowChar = String.fromCharCode(asciiValA + idx);
+
+    // Row content
+    parts.push(`${rowChar} │`);
+    row.forEach((cell, colIdx) => {
+      let icon;
+
+      // Check if this position has been attacked
+      const guessState = attackerGuesses[idx][colIdx];
+
+      if (guessState === GUESS.MISS_ID) {
+        // Show miss regardless of what's underneath
+        icon = GUESS.MISS_ICON;
+      } else if (guessState === GUESS.HIT_ID) {
+        // Show hit or sunk if ship is destroyed
+        const shipId = defenderBoard[idx][colIdx];
+        if (shipId !== SEA && isShipSunk(defenderBoard, attackerGuesses, shipId)) {
+          icon = GUESS.SUNK_SHIP_ICON;
+        } else {
+          icon = GUESS.HIT_ICON;
+        }
+      } else {
+        // No attack here yet - show original board content
+        const shipIcon = SHIPS.find((ship) => ship.id === cell)?.icon || SEA_ICON;
+        icon = shipIcon;
       }
 
       parts.push(` ${icon} │`);
@@ -327,23 +421,26 @@ async function sendAttackerUpdate(interaction, session, attackerKey, move) {
     remainingShips,
   } = move;
 
-  const resultTextDisplay = new TextDisplayBuilder();
+  let resultText = '';
   const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
 
   switch (result) {
     case MOVE_RESULT.HIT:
-      resultTextDisplay.setContent(
-        `# Hit! 💥\nYou hit their ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`
-      );
+      resultText = `# Hit! 💥\nYou hit their ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`;
       break;
     case MOVE_RESULT.MISS:
-      resultTextDisplay.setContent(`# Miss! 🚫\n You hit nothing at **${row}${column}**`);
+      resultText = `# Miss! 🚫\nYou hit nothing at **${row}${column}**`;
       break;
     case MOVE_RESULT.SUNK:
-      resultTextDisplay.setContent(
-        `# Sunken Ship! 🌊\nYou've sunken their ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nThere are ${remainingShips} remaining ships.`
-      );
+      resultText = `# Sunken Ship! 🌊\nYou've sunken their ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nThere are ${remainingShips} remaining ships.`;
+      break;
   }
+
+  const defenderKey = attackerKey === 'p1' ? 'p2' : 'p1';
+  resultText +=
+    '\nYour guess board:' +
+    guessesRepresentation(session[attackerKey].guesses, session[defenderKey].board);
+  const resultTextDisplay = new TextDisplayBuilder().setContent(resultText);
 
   await interaction.reply({
     components: [resultTextDisplay],
@@ -366,24 +463,26 @@ async function sendDefenderUpdate(interaction, session, defenderKey, move) {
     remainingShips,
   } = move;
 
-  const resultTextDisplay = new TextDisplayBuilder();
+  let resultText = '';
   const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
 
   switch (result) {
     case MOVE_RESULT.HIT:
-      resultTextDisplay.setContent(
-        `# Your ship was Hit! 💥\nThey hit your ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`
-      );
+      resultText = `# Your ship was Hit! 💥\nThey hit your ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`;
       break;
     case MOVE_RESULT.MISS:
-      resultTextDisplay.setContent(`# They Missed! 🚫\n They hit nothing at **${row}${column}**`);
+      resultText = `# They Missed! 🚫\nThey hit nothing at **${row}${column}**`;
       break;
     case MOVE_RESULT.SUNK:
-      resultTextDisplay.setContent(
-        `# Sunken Ship! 😭\nThey've sunken your ship ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nYou have ${remainingShips} remaining ships.`
-      );
+      resultText = `# Sunken Ship! 😭\nThey've sunken your ship ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nYou have ${remainingShips} remaining ships.`;
       break;
   }
+
+  const attackerKey = defenderKey === 'p1' ? 'p2' : 'p1';
+  resultText +=
+    '\nYour board:\n' +
+    defenderBoardWithDamage(session[attackerKey].guesses, session[defenderKey].board);
+  const resultTextDisplay = new TextDisplayBuilder().setContent(resultText);
 
   await defenderChannel.send({
     components: [resultTextDisplay],

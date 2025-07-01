@@ -1,17 +1,18 @@
-const BOARD_WIDTH = 10;
-const BOARD_HEIGHT = 10;
+const BOARD_WIDTH = 5;
+const BOARD_HEIGHT = 5;
 
 const SEA = 0;
-const SEA_ICON = '≈';
+// const SEA_ICON = '≈';
+const SEA_ICON = ' ';
 
 const SHIPS = [
-  {
-    id: 1,
-    name: 'Carrier',
-    length: 5,
-    emoji: '🛳',
-    icon: '◆',
-  },
+  // {
+  //   id: 1,
+  //   name: 'Carrier',
+  //   length: 5,
+  //   emoji: '🛳',
+  //   icon: '◆',
+  // },
   // {
   //   id: 2,
   //   name: 'Battleship',
@@ -19,27 +20,27 @@ const SHIPS = [
   //   emoji: '⚔️',
   //   icon: '■',
   // },
-  // {
-  //   id: 3,
-  //   name: 'Destroyer',
-  //   length: 3,
-  //   emoji: '🚢',
-  //   icon: '▲',
-  // },
-  // {
-  //   id: 4,
-  //   name: 'Submarine',
-  //   length: 3,
-  //   emoji: '🫧',
-  //   icon: '●',
-  // },
-  // {
-  //   id: 5,
-  //   name: 'Patrol Boat',
-  //   length: 2,
-  //   emoji: '🚤',
-  //   icon: '★',
-  // },
+  {
+    id: 3,
+    name: 'Destroyer',
+    length: 3,
+    emoji: '🚢',
+    icon: '▲',
+  },
+  {
+    id: 4,
+    name: 'Submarine',
+    length: 3,
+    emoji: '🫧',
+    icon: '●',
+  },
+  {
+    id: 5,
+    name: 'Patrol Boat',
+    length: 2,
+    emoji: '🚤',
+    icon: '★',
+  },
 ];
 
 const GUESS = {

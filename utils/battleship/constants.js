@@ -52,6 +52,12 @@ const GUESS = {
   SUNK_SHIP_ICON: '⊗',
 };
 
+const MOVE_RESULT = {
+  HIT: 'hit',
+  MISS: 'miss',
+  SUNK: 'sunk',
+};
+
 module.exports = {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -59,4 +65,5 @@ module.exports = {
   SEA_ICON,
   SHIPS,
   GUESS,
+  MOVE_RESULT,
 };

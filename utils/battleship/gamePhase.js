@@ -8,8 +8,8 @@ const {
   ButtonStyle,
 } = require('discord.js');
 const { createCollector } = require('./interactionHandlers');
-const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
-const { startIdleTimer, createGamePhaseInSession } = require('./sessionManagement');
+const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH, MOVE_RESULT, SHIPS } = require('./constants');
+const { startIdleTimer, createGamePhaseInSession, resetIdleTimer } = require('./sessionManagement');
 
 function isShipSunk(opponentBoard, guesses, shipId) {
   // Don't check if it's water
@@ -112,6 +112,87 @@ function guessesRepresentation(guesses, opponentBoard) {
   parts.push('┘\n```');
 
   return parts.join('');
+}
+
+/*
+  const move = {
+  turn: 1,                    // Turn number
+  position: { row: 'A', col: 3 },  // Human-readable position
+  coordinates: { row: 0, col: 2 }, // Array indices
+  result: 'hit',              // 'hit', 'miss', 'sunk'
+  shipHit: 2,                 // Ship ID if hit, null if miss
+  shipSunk: null,             // Ship ID if sunk, null otherwise
+  timestamp: new Date(),
+  remainingShips: 4           // Ships left after this move
+};
+ */
+
+function countRemainingShips(opponentBoard, guesses) {
+  // Get all unique ship IDs from the board (excluding SEA)
+  const shipIds = new Set();
+
+  for (let row = 0; row < opponentBoard.length; row++) {
+    for (let col = 0; col < opponentBoard[row].length; col++) {
+      const cellValue = opponentBoard[row][col];
+      if (cellValue !== SEA) {
+        shipIds.add(cellValue);
+      }
+    }
+  }
+
+  // Count ships that are NOT sunk
+  let remainingShips = 0;
+  shipIds.forEach((shipId) => {
+    if (!isShipSunk(opponentBoard, guesses, shipId)) {
+      remainingShips++;
+    }
+  });
+
+  return remainingShips;
+}
+
+function makeMove(session) {
+  const { turn: attackerKey } = session.gamePhase;
+  const defenderKey = attackerKey === 'p1' ? 'p2' : 'p1';
+  const attacker = session[attackerKey];
+  const defender = session[defenderKey];
+
+  const { selectedRow, selectedColumn } = session.gamePhase;
+  const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0);
+  const colIdx = selectedColumn - 1;
+
+  // Check if for some reason already guessed
+  if (attacker.guesses[rowIdx][colIdx] !== GUESS.UNGUESSED_ID) {
+    console.log("NAH NIGGA THIS AIN'T SUPPOSED TO HAPPEN");
+    return;
+  }
+
+  // Evaluate result
+  const shipId = defender.board[rowIdx][colIdx];
+  const isHit = shipId !== SEA;
+  let result = isHit ? MOVE_RESULT.HIT : MOVE_RESULT.MISS;
+
+  attacker.guesses[rowIdx][colIdx] = isHit ? GUESS.HIT_ID : GUESS.MISS_ID;
+
+  let shipSunk = null;
+  if (isHit && isShipSunk(defender.board, attacker.guesses, shipId)) {
+    result = MOVE_RESULT.SUNK;
+    shipSunk = shipId;
+  }
+
+  const move = {
+    turnNumber: attacker.moves.length + 1,
+    position: { row: selectedRow, column: selectedColumn },
+    coordinates: { row: rowIdx, column: colIdx },
+    result,
+    shipHit: shipId,
+    shipSunk,
+    timeStamp: new Date(),
+    remainingShips: countRemainingShips(defender.board, attacker.guesses),
+  };
+
+  attacker.moves.push(move);
+  return move;
 }
 
 function generateMoveInterface(session) {
@@ -237,8 +318,83 @@ async function sendMoveFeedback(interaction, session, playerKey) {
   }
 }
 
+async function sendAttackerUpdate(interaction, session, attackerKey, move) {
+  const {
+    position: { row, column },
+    result,
+    shipHit: shipHitId,
+    // shipSunk,
+    remainingShips,
+  } = move;
+
+  const resultTextDisplay = new TextDisplayBuilder();
+  const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
+
+  switch (result) {
+    case MOVE_RESULT.HIT:
+      resultTextDisplay.setContent(
+        `# Hit! 💥\nYou hit their ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`
+      );
+      break;
+    case MOVE_RESULT.MISS:
+      resultTextDisplay.setContent(`# Miss! 🚫\n You hit nothing at **${row}${column}**`);
+      break;
+    case MOVE_RESULT.SUNK:
+      resultTextDisplay.setContent(
+        `# Sunken Ship! 🌊\nYou've sunken their ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nThere are ${remainingShips} remaining ships.`
+      );
+  }
+
+  await interaction.reply({
+    components: [resultTextDisplay],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
+async function sendDefenderUpdate(interaction, session, defenderKey, move) {
+  // Note that interaction is actually the attacker's interaction
+
+  const defenderChannel = await interaction.client.channels.fetch(
+    session[defenderKey].textChannelId
+  );
+
+  const {
+    position: { row, column },
+    result,
+    shipHit: shipHitId,
+    // shipSunk,
+    remainingShips,
+  } = move;
+
+  const resultTextDisplay = new TextDisplayBuilder();
+  const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
+
+  switch (result) {
+    case MOVE_RESULT.HIT:
+      resultTextDisplay.setContent(
+        `# Your ship was Hit! 💥\nThey hit your ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`
+      );
+      break;
+    case MOVE_RESULT.MISS:
+      resultTextDisplay.setContent(`# They Missed! 🚫\n They hit nothing at **${row}${column}**`);
+      break;
+    case MOVE_RESULT.SUNK:
+      resultTextDisplay.setContent(
+        `# Sunken Ship! 😭\nThey've sunken your ship ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nYou have ${remainingShips} remaining ships.`
+      );
+      break;
+  }
+
+  await defenderChannel.send({
+    components: [resultTextDisplay],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
 async function handleOnCollect(interaction, session, playerKey) {
   const { gamePhase } = session;
+
+  resetIdleTimer(interaction.channel, session, playerKey);
   switch (interaction.customId) {
     case 'row_select_menu':
       const selectedRow = interaction.values[0];
@@ -259,8 +415,33 @@ async function handleOnCollect(interaction, session, playerKey) {
       break;
 
     case 'confirm_guess_button':
-      const { selectedRow: nigga, selectedColumn: nigga2 } = gamePhase;
-      await interaction.reply(`NAH NIGGA CONFIRMED ${nigga}${nigga2}`);
+      const move = makeMove(session);
+      console.log('THE MOVE THAT WAS MADE!');
+      console.log(move);
+
+      const attackerKey = playerKey;
+      const defenderKey = playerKey === 'p1' ? 'p2' : 'p1';
+      await sendAttackerUpdate(interaction, session, attackerKey, move);
+      await sendDefenderUpdate(interaction, session, defenderKey, move);
+
+      // Clear move interface and move feedback collector
+      const { collectors } = session[playerKey];
+      if (collectors.moveInterface) {
+        collectors.moveInterface.stop();
+      }
+      if (collectors.moveFeedbackCollector) {
+        collectors.moveFeedbackCollector.stop();
+      }
+
+      // Prepare game phase for next turn
+      gamePhase.turn = gamePhase.turn === 'p1' ? 'p2' : 'p1'; // Next player's turn
+      gamePhase.selectedRow = null;
+      gamePhase.selectedColumn = null;
+
+      const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
+      const p2Channel = await interaction.client.channels.fetch(session.p2.textChannelId);
+      await startTurn(session, p1Channel, p2Channel);
+
       break;
 
     default:
@@ -293,6 +474,7 @@ async function startTurn(session, p1Channel, p2Channel) {
     flags: MessageFlags.IsComponentsV2,
   });
 
+  // Create collector and start timer for attacker
   const { collectors } = session[turn];
   if (collectors.moveInterface) {
     collectors.moveInterface.stop();

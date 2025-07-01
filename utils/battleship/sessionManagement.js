@@ -132,6 +132,7 @@ function createGamePhaseInSession(session) {
     selectedRow: null,
     selectedColumn: null,
   };
+  session.status = 'game_phase';
 }
 
 async function sessionInit(interaction, session, p1, p2) {
@@ -274,14 +275,14 @@ function stopCollectors(session, playerKey, stopReason = 'all_collectors_stopped
       collector.stop(stopReason);
     }
   });
-  session.collectors = {};
+  session[playerKey].collectors = {};
 }
 
 function stopIdleTimer(session, playerKey) {
-  // Stop idle timer
-  const { idleTimer } = session[playerKey];
-  if (idleTimer) {
-    clearTimeout(idleTimer);
+  const playerObj = session[playerKey];
+  if (playerObj.idleTimer) {
+    clearTimeout(playerObj.idleTimer);
+    playerObj.idleTimer = null;
   }
 
   stopCollectors(session, playerKey);

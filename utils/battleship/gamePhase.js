@@ -157,7 +157,7 @@ function generateMoveInterface(session) {
 }
 
 function generateWaitingMessage(session) {
-  const opponentKey = session.turn; // Whoever's turn it is, is the opponent
+  const opponentKey = session.gamePhase.turn; // Whoever's turn it is, is the opponent
   const { id: opponentId } = session[opponentKey];
   const waitMessageTextDisplay = new TextDisplayBuilder().setContent(
     `# It's currently not your turn!\nWait for <@${opponentId}> to make a move!`

@@ -594,6 +594,8 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
 
       // Player finishes setting up their board before their opponent
       if (session.status === 'board_setup') {
+        session.status = `board_setup_${playerKey}_ready`;
+
         const { id: opponentId } = session[opponentKey];
 
         // Tell user to wait for their opponent
@@ -604,8 +606,6 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           components: [finishSetupTextDisplay],
           flags: MessageFlags.IsComponentsV2,
         });
-
-        session.status = `board_setup_${playerKey}_ready`;
 
         console.log(`THIS NIGGA IS READY TO PLAY!!!!!! ${playerKey}`);
         console.log(session);
@@ -634,7 +634,6 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           flags: MessageFlags.IsComponentsV2,
         });
 
-        session.status = 'starting_game';
         await startGamePhase(interaction, session);
 
         console.log(`BOTH NIGGAS READY TO PLAY!!!!!! ${playerKey}`);

@@ -4,6 +4,8 @@ const {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } = require('discord.js');
 const { createCollector } = require('./interactionHandlers');
 const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
@@ -166,14 +168,99 @@ function generateWaitingMessage(session) {
   return [waitMessageTextDisplay];
 }
 
+async function sendMoveFeedback(interaction, session, playerKey) {
+  const { gamePhase } = session;
+  const { selectedRow, selectedColumn } = gamePhase;
+
+  // If any of the selections are incomplete
+  if (!selectedRow || !selectedColumn) {
+    return;
+  }
+
+  if (gamePhase.moveFeedbackMessageId) {
+    try {
+      const oldMessage = await interaction.channel.messages.fetch(gamePhase.moveFeedbackMessageId);
+      await oldMessage.delete();
+    } catch (error) {
+      // Message might already be deleted, ignore error
+    }
+  }
+
+  // Send a message saying whether their move is valid
+  // If it's valid, a confirmation button is sent
+  // If it's not valid, a simple message saying why it's invalid is sent
+  const { guesses } = session[playerKey];
+  const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0); // row in indexes
+  const colIdx = selectedColumn - 1;
+  const isMoveValid = guesses[rowIdx][colIdx] === GUESS.UNGUESSED_ID;
+
+  console.log('BEFORE ISMOVEVALIE');
+  if (isMoveValid) {
+    console.log('NAH NIGGA THE MOVE IS VALID!!!!');
+    const confirmGuessTextDisplay = new TextDisplayBuilder().setContent(
+      `Confirm guess '${selectedRow}${selectedColumn}'?`
+    );
+
+    const confirmButton = new ButtonBuilder()
+      .setCustomId('confirm_guess_button')
+      .setLabel(`Guess ${selectedRow}${selectedColumn}`)
+      .setEmoji('🎯')
+      .setStyle(ButtonStyle.Success);
+    const actionRow = new ActionRowBuilder().addComponents(confirmButton);
+
+    const confirmGuessMessage = await interaction.followUp({
+      components: [confirmGuessTextDisplay, actionRow],
+      flags: MessageFlags.IsComponentsV2,
+    });
+    gamePhase.moveFeedbackMessageId = confirmGuessMessage.id;
+
+    const { collectors } = session[playerKey];
+    if (collectors.moveFeedbackCollector) {
+      collectors.moveFeedbackCollector.stop();
+    }
+    collectors.moveFeedbackCollector = createCollector(
+      confirmGuessMessage,
+      session,
+      playerKey,
+      handleOnCollect
+    );
+  } else {
+    const invalidGuessTextDisplay = new TextDisplayBuilder().setContent(
+      'You have already guessed there! Please change your guess.'
+    );
+
+    const invalidGuessMessage = await interaction.followUp({
+      components: [invalidGuessTextDisplay],
+      flags: MessageFlags.IsComponentsV2,
+    });
+    gamePhase.moveFeedbackMessageId = invalidGuessMessage.id;
+  }
+}
+
 async function handleOnCollect(interaction, session, playerKey) {
+  const { gamePhase } = session;
   switch (interaction.customId) {
     case 'row_select_menu':
-      await interaction.reply(`NIGGA YOU CHOSE ${interaction.values[0]}`);
+      const selectedRow = interaction.values[0];
+      gamePhase.selectedRow = selectedRow;
+
+      console.log(gamePhase);
+      await interaction.deferUpdate();
+      await sendMoveFeedback(interaction, session, playerKey);
       break;
 
     case 'col_select_menu':
-      await interaction.reply(`NIGGA YOU CHOSE ${interaction.values[0]}`);
+      const selectedColumn = interaction.values[0];
+      gamePhase.selectedColumn = selectedColumn;
+
+      console.log(gamePhase);
+      await interaction.deferUpdate();
+      await sendMoveFeedback(interaction, session, playerKey);
+      break;
+
+    case 'confirm_guess_button':
+      const { selectedRow: nigga, selectedColumn: nigga2 } = gamePhase;
+      await interaction.reply(`NAH NIGGA CONFIRMED ${nigga}${nigga2}`);
       break;
 
     default:

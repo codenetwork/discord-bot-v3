@@ -94,6 +94,7 @@ function newPlayerObj(player) {
     id: player.id,
     board: null,
     guesses: null,
+    moves: [],
     textChannelId: null,
     idleTimer: null,
     boardSetup: {
@@ -122,6 +123,15 @@ function createSession(p1, p2) {
   };
   sessions.push(newSession);
   return newSession;
+}
+
+function createGamePhaseInSession(session) {
+  const randomTurn = Math.floor(Math.random() * 2) === 0 ? 'p1' : 'p2';
+  session.gamePhase = {
+    turn: randomTurn,
+    selectedRow: null,
+    selectedColumn: null,
+  };
 }
 
 async function sessionInit(interaction, session, p1, p2) {
@@ -319,4 +329,5 @@ module.exports = {
   startIdleTimer,
   resetIdleTimer,
   stopIdleTimer,
+  createGamePhaseInSession,
 };

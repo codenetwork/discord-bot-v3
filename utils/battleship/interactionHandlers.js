@@ -7,8 +7,8 @@ function createCollector(message, session, playerKey, onCollect) {
   });
 
   collector.on('collect', async (interaction) => {
-    const { currentInterface } = session[playerKey].boardSetup;
-    console.log(currentInterface);
+    // const { currentInterface } = session[playerKey].boardSetup;
+    // console.log(currentInterface);
 
     await onCollect(interaction, session, playerKey);
   });

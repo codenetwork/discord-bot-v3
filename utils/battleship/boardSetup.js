@@ -10,8 +10,9 @@ const {
   SeparatorSpacingSize,
 } = require('discord.js');
 const { SEA, SEA_ICON, SHIPS, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
-const { startIdleTimer, resetIdleTimer } = require('./sessionManagement');
+const { startIdleTimer, resetIdleTimer, stopIdleTimer } = require('./sessionManagement');
 const { createCollector } = require('./interactionHandlers');
+const { startGamePhase } = require('./gamePhase');
 
 function boardRepresentation(board) {
   const parts = ['```\n'];
@@ -163,19 +164,30 @@ function generateMainInterface(session, playerKey) {
 
   // Create place ship button
   const placeShipButton = new ButtonBuilder()
-    .setCustomId('place_ship')
+    .setCustomId('place_ship_button')
     .setLabel('Place Ship')
     .setEmoji('🚢')
     .setStyle(ButtonStyle.Primary);
 
   // Create remove ship button
   const removeShipButton = new ButtonBuilder()
-    .setCustomId('remove_ship')
+    .setCustomId('remove_ship_button')
     .setLabel('Remove Ship')
     .setEmoji('❌')
     .setStyle(ButtonStyle.Primary);
 
   const actionRow = new ActionRowBuilder().addComponents(placeShipButton, removeShipButton);
+
+  // Create finish setup button if all ships have been placed
+  const allShipsPlaced = session[playerKey].boardSetup.ships.every((ship) => ship.placed);
+  if (allShipsPlaced) {
+    const finishSetupButton = new ButtonBuilder()
+      .setCustomId('finish_setup_button')
+      .setLabel('Finish Setup')
+      .setEmoji('🏁')
+      .setStyle(ButtonStyle.Success);
+    actionRow.addComponents(finishSetupButton);
+  }
 
   return [boardTextDisplayComponent, actionRow];
 }
@@ -514,63 +526,126 @@ async function handleOnCollect(interaction, session, playerKey) {
 async function handleMainInterfaceClick(interaction, session, playerKey) {
   const { boardSetup, collectors } = session[playerKey];
   const { ships } = boardSetup;
-  if (interaction.customId === 'place_ship') {
-    const shipsToBePlaced = ships.filter((ship) => !ship.placed);
+  switch (interaction.customId) {
+    case 'place_ship_button':
+      const shipsToBePlaced = ships.filter((ship) => !ship.placed);
 
-    // Tell that there are no more ships to be palced
-    if (shipsToBePlaced.length === 0) {
-      await interaction.reply('You have no more ships to be placed 🤪');
+      // Tell that there are no more ships to be palced
+      if (shipsToBePlaced.length === 0) {
+        await interaction.reply('You have no more ships to be placed 🤪');
 
-      if (collectors.currentInterfaceCollector) {
-        collectors.currentInterfaceCollector.stop();
+        if (collectors.currentInterfaceCollector) {
+          collectors.currentInterfaceCollector.stop();
+        }
+
+        const mainInterfaceMessage = await interaction.channel.send({
+          components: generateMainInterface(session, playerKey),
+          flags: MessageFlags.IsComponentsV2,
+        });
+
+        collectors.currentInterfaceCollector = createCollector(
+          mainInterfaceMessage,
+          session,
+          playerKey,
+          handleOnCollect
+        );
+      } else {
+        console.log('PLACE SHIP BABY');
+        boardSetup.currentInterface = 'placing';
+        console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
+        await startPlacingFlow(interaction, session, playerKey);
       }
 
-      const mainInterfaceMessage = await interaction.channel.send({
-        components: generateMainInterface(session, playerKey),
-        flags: MessageFlags.IsComponentsV2,
-      });
+      break;
+    case 'remove_ship_button':
+      const shipsAlreadyPlaced = ships.filter((ship) => ship.placed);
 
-      collectors.currentInterfaceCollector = createCollector(
-        mainInterfaceMessage,
-        session,
-        playerKey,
-        handleOnCollect
-      );
-    } else {
-      console.log('PLACE SHIP BABY');
-      boardSetup.currentInterface = 'placing';
-      console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
-      await startPlacingFlow(interaction, session, playerKey);
-    }
-  } else if (interaction.customId === 'remove_ship') {
-    const shipsAlreadyPlaced = ships.filter((ship) => ship.placed);
+      if (shipsAlreadyPlaced.length === 0) {
+        await interaction.reply('You have no ships to be removed 🤪');
 
-    if (shipsAlreadyPlaced.length === 0) {
-      await interaction.reply('You have no ships to be removed 🤪');
+        if (collectors.currentInterfaceCollector) {
+          collectors.currentInterfaceCollector.stop();
+        }
 
-      if (collectors.currentInterfaceCollector) {
-        collectors.currentInterfaceCollector.stop();
+        const mainInterfaceMessage = await interaction.channel.send({
+          components: generateMainInterface(session, playerKey),
+          flags: MessageFlags.IsComponentsV2,
+        });
+
+        collectors.currentInterfaceCollector = createCollector(
+          mainInterfaceMessage,
+          session,
+          playerKey,
+          handleOnCollect
+        );
+      } else {
+        console.log('REMOVING SHIPS BABY!');
+        boardSetup.currentInterface = 'removing';
+        await startRemovingFlow(interaction, session, playerKey);
       }
 
-      const mainInterfaceMessage = await interaction.channel.send({
-        components: generateMainInterface(session, playerKey),
-        flags: MessageFlags.IsComponentsV2,
-      });
+      break;
+    case 'finish_setup_button':
+      // Clear boardSetup and stop idle timer
+      session[playerKey].boardSetup = null;
+      stopIdleTimer(session, playerKey);
 
-      collectors.currentInterfaceCollector = createCollector(
-        mainInterfaceMessage,
-        session,
-        playerKey,
-        handleOnCollect
-      );
-    } else {
-      console.log('REMOVING SHIPS BABY!');
-      boardSetup.currentInterface = 'removing';
-      await startRemovingFlow(interaction, session, playerKey);
-    }
-  } else {
-    // For future custom ids
-    console.log(`nah wtf is this custom id? ${interaction.customId}`);
+      const opponentKey = playerKey === 'p1' ? 'p2' : 'p1';
+
+      // Player finishes setting up their board before their opponent
+      if (session.status === 'board_setup') {
+        const { id: opponentId } = session[opponentKey];
+
+        // Tell user to wait for their opponent
+        const finishSetupTextDisplay = new TextDisplayBuilder().setContent(
+          `# You have finished setting up your board! 😆\nPlease wait for <@${opponentId}> to finish setting up their board!`
+        );
+        await interaction.reply({
+          components: [finishSetupTextDisplay],
+          flags: MessageFlags.IsComponentsV2,
+        });
+
+        session.status = `board_setup_${playerKey}_ready`;
+
+        console.log(`THIS NIGGA IS READY TO PLAY!!!!!! ${playerKey}`);
+        console.log(session);
+      } else {
+        // Their opponent has finished setting up their board first
+
+        // Tell user they have finished setting up their board
+        const letsStartTextDisplay = new TextDisplayBuilder().setContent(
+          '# You have finished setting up your board! 😆'
+        );
+        await interaction.reply({
+          components: [letsStartTextDisplay],
+          flags: MessageFlags.IsComponentsV2,
+        });
+
+        // Tell opponent that user has finished setting up their board
+        const opponentChannel = await interaction.client.channels.fetch(
+          session[opponentKey].textChannelId
+        );
+        const { id: userId } = session[playerKey];
+        const userFinishedSetupTextDisplay = new TextDisplayBuilder().setContent(
+          `# Hello again!\n <@${userId}> has finished setting up their board!`
+        );
+        await opponentChannel.send({
+          components: [userFinishedSetupTextDisplay],
+          flags: MessageFlags.IsComponentsV2,
+        });
+
+        session.status = 'starting_game';
+        await startGamePhase(interaction, session);
+
+        console.log(`BOTH NIGGAS READY TO PLAY!!!!!! ${playerKey}`);
+        console.log(session);
+      }
+
+      break;
+    default:
+      // For future custom ids
+      console.log(`nah wtf is this custom id? ${interaction.customId}`);
+      break;
   }
 }
 

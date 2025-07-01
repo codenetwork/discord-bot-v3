@@ -257,6 +257,26 @@ function resetIdleTimer(channel, session, playerKey) {
   startIdleTimer(channel, session, playerKey);
 }
 
+function stopCollectors(session, playerKey, stopReason = 'all_collectors_stopped') {
+  const { collectors } = session[playerKey];
+  Object.values(collectors).forEach((collector) => {
+    if (!collector.ended) {
+      collector.stop(stopReason);
+    }
+  });
+  session.collectors = {};
+}
+
+function stopIdleTimer(session, playerKey) {
+  // Stop idle timer
+  const { idleTimer } = session[playerKey];
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+  }
+
+  stopCollectors(session, playerKey);
+}
+
 async function handlePlayerTimeout(channel, session, playerKey) {
   // Player went idle for 5 minutes
   session.status = `${playerKey}_idle_timeout`;
@@ -267,19 +287,20 @@ async function handlePlayerTimeout(channel, session, playerKey) {
   //   playerObj.currentCollector.stop('idle_timeout');
   // }
 
-  const playerObj = session[playerKey];
-  if (playerObj.collectors) {
-    // Stop all collectors in the collectors object
-    Object.keys(playerObj.collectors).forEach((collectorKey) => {
-      const collector = playerObj.collectors[collectorKey];
-      if (collector && !collector.ended) {
-        collector.stop('timeout');
-      }
-    });
+  stopCollectors(session, playerKey, 'idle_timeout');
+  // const playerObj = session[playerKey];
+  // if (playerObj.collectors) {
+  //   // Stop all collectors in the collectors object
+  //   Object.keys(playerObj.collectors).forEach((collectorKey) => {
+  //     const collector = playerObj.collectors[collectorKey];
+  //     if (collector && !collector.ended) {
+  //       collector.stop('timeout');
+  //     }
+  //   });
 
-    // Clear the collectors object
-    playerObj.collectors = {};
-  }
+  //   // Clear the collectors object
+  //   playerObj.collectors = {};
+  // }
 
   // Send timeout message
   await channel.send('⏰ You went idle for too long. Game session ended.');
@@ -297,4 +318,5 @@ module.exports = {
   sessions,
   startIdleTimer,
   resetIdleTimer,
+  stopIdleTimer,
 };

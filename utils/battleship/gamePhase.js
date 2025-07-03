@@ -344,20 +344,20 @@ async function handleOnCollect(interaction, session, playerKey) {
   resetIdleTimer(interaction.channel, session, playerKey);
   switch (interaction.customId) {
     case 'row_select_menu':
+      await interaction.deferUpdate();
       const selectedRow = interaction.values[0];
       gamePhase.selectedRow = selectedRow;
 
       console.log(gamePhase);
-      await interaction.deferUpdate();
       await sendMoveFeedback(interaction, session, playerKey);
       break;
 
     case 'col_select_menu':
+      await interaction.deferUpdate();
       const selectedColumn = interaction.values[0];
       gamePhase.selectedColumn = selectedColumn;
 
       console.log(gamePhase);
-      await interaction.deferUpdate();
       await sendMoveFeedback(interaction, session, playerKey);
       break;
 
@@ -403,7 +403,7 @@ async function handleOnCollect(interaction, session, playerKey) {
         finishSession(session, `${attackerKey}_win`);
 
         // Make both channels view only and everyone else in the server able to see
-        sessionChannelsViewOnly(session, interaction.client);
+        await sessionChannelsViewOnly(session, interaction.client);
       }
 
       break;

@@ -51,7 +51,7 @@ const GUESS = {
   HIT_ICON: 'O',
   MISS_ID: 2,
   MISS_ICON: 'X',
-  SUNK_SHIP_ICON: '※',
+  SUNK_SHIP_ICON: '#',
 };
 
 const MOVE_RESULT = {

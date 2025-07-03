@@ -211,9 +211,19 @@ module.exports = {
         session.inviteCollector = collector;
 
         collector.on('collect', async (inviteeResponse) => {
+          // Create disabled buttons
+          const disabledAccept = ButtonBuilder.from(accept).setDisabled(true);
+          const disabledDeny = ButtonBuilder.from(deny).setDisabled(true);
+          const disabledRow = new ActionRowBuilder().addComponents(disabledAccept, disabledDeny);
+
           try {
             if (inviteeResponse.customId === 'accept_invite') {
-              // Invitee accepts the invitation
+              // Tell invitee that they've interacted with the accept button
+              await inviteeResponse.update({
+                content: `You've been invited by ${inviter} to play Battleship!\n✅ **Accepted!** Please wait while we set up your game...`,
+                components: [disabledRow],
+              });
+
               await sessionInit(interaction, session, inviter, invitee);
               console.log(sessions);
 
@@ -221,10 +231,9 @@ module.exports = {
               await startBoardSetup(interaction, session);
 
               // Tell invitee they've accepted
-              await inviteeResponse.update({
-                content: `You accepted an invite from ${inviter} to play Battleship! Head over to your game channel <#${session.p2.textChannelId}>`,
-                components: [],
-              });
+              await inviteeResponse.followUp(
+                `Head over to your game channel <#${session.p2.textChannelId}>`
+              );
 
               // Tell inviter that invitee accepted
               await interaction.followUp({
@@ -232,15 +241,13 @@ module.exports = {
                 ephemeral: MessageFlags.Ephemeral,
               });
             } else if (inviteeResponse.customId === 'deny_invite') {
-              // Invitee denies the invitation
-              denySession(session);
-              console.log(sessions);
-
-              // Tell invitee they've denied
+              // Tell invite that they've interacted with the deny button
               await inviteeResponse.update({
-                content: `You denied ${inviter}'s invite!`,
-                components: [],
+                content: `You've been invited by ${inviter} to play Battleship!\n❌ **Declined** You have declined the invitation.`,
+                components: [disabledRow],
               });
+
+              denySession(session);
 
               // Tell inviter that invitee denied
               await interaction.followUp({

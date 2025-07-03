@@ -15,6 +15,7 @@ const {
   resetIdleTimer,
   finishSession,
   sessionChannelsViewOnly,
+  stopIdleTimer,
 } = require('./sessionManagement');
 const {
   boardRepresentation,
@@ -365,8 +366,6 @@ async function handleOnCollect(interaction, session, playerKey) {
       console.log('THE MOVE THAT WAS MADE!');
       console.log(move);
 
-      const isGameOngoing = move.remainingShips !== 0;
-
       const attackerKey = playerKey;
       const defenderKey = playerKey === 'p1' ? 'p2' : 'p1';
       await sendAttackerUpdate(interaction, session, attackerKey, move);
@@ -384,7 +383,12 @@ async function handleOnCollect(interaction, session, playerKey) {
       const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
       const p2Channel = await interaction.client.channels.fetch(session.p2.textChannelId);
 
+      const isGameOngoing = move.remainingShips !== 0;
       if (isGameOngoing) {
+        // Stop checking for timeout for the current attacker
+        // now it's the defender's turn to attack
+        stopIdleTimer(session, attackerKey);
+
         // Prepare game phase for next turn
         gamePhase.turn = gamePhase.turn === 'p1' ? 'p2' : 'p1'; // Next player's turn
         gamePhase.selectedRow = null;
@@ -395,7 +399,7 @@ async function handleOnCollect(interaction, session, playerKey) {
         // Tell both players who won (and lost)
         await announceWinner(session, p1Channel, p2Channel, attackerKey);
 
-        // Mark session as finishe
+        // Mark session as finished
         finishSession(session, `${attackerKey}_win`);
 
         // Make both channels view only and everyone else in the server able to see

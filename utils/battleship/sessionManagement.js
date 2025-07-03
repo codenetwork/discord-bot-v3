@@ -1,37 +1,11 @@
 const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js');
-const { BOARD_HEIGHT, BOARD_WIDTH, SEA, SHIPS } = require('./constants');
+const { BOARD_HEIGHT, BOARD_WIDTH, SEA, SHIPS, TIMEOUT_TIME } = require('./constants');
 
 const sessions = [];
 
-/**
- * `sessions` type (per item)
- * session:
- *  {
- *    id: int
- *    status: "invite_pending", "invite_expired", "invite_denied", "board_setup", "turn_p1", "turn_p2", "finish_p1_win", "finish_p2_win",
- *    p1:
- *     {
- *       id: Member.id,
- *       board: [n x m],
- *       guesses: [n x m],
- *       textChannelId: Channel.id
- *     },
- *    p2:
- *     {
- *       id: Member.id,
- *       board: [n x m],
- *       guesses: [n x m],
- *       textChannelId: Channel.id
- *     },
- *    inviteTimestamp: Date,
- *    inviteAcceptedTimestamp: Date
- *  }
- *
- */
-
 async function isInviteValid(interaction, inviter, invitee) {
   // Check if the inviter is already in an active session
-  const activeStatuses = ['invite_pending', 'board_setup', 'turn_p1', 'turn_p2'];
+  const activeStatuses = ['invite_pending', 'board_setup', 'game_phase'];
   const inviterActiveSession = sessions.find(
     (session) => session.p1.id === inviter.id && activeStatuses.includes(session.status)
   );
@@ -260,7 +234,7 @@ function startIdleTimer(channel, session, playerKey) {
 
   playerObj.idleTimer = setTimeout(() => {
     handlePlayerTimeout(channel, session, playerKey);
-  }, 300_000); // 5 minutes
+  }, TIMEOUT_TIME);
 }
 
 function resetIdleTimer(channel, session, playerKey) {
@@ -297,35 +271,43 @@ function finishSession(session, status = null) {
   }
 }
 
+async function sessionChannelsViewOnly(session, client) {
+  const p1Channel = await client.channels.fetch(session.p1.textChannelId);
+  const p2Channel = await client.channels.fetch(session.p2.textChannelId);
+  const everyoneId = p1Channel.guildId;
+
+  // Make channels view only
+  const viewOnlyPermission = {
+    ViewChannel: true,
+    SendMessages: false,
+    AddReactions: false,
+  };
+  await p1Channel.permissionOverwrites.edit(everyoneId, viewOnlyPermission);
+  await p2Channel.permissionOverwrites.edit(everyoneId, viewOnlyPermission);
+
+  // Overwrite p1 and p2's permissions to respective channels
+  await p1Channel.permissionOverwrites.edit(session.p1.id, viewOnlyPermission);
+  await p1Channel.permissionOverwrites.edit(session.p2.id, viewOnlyPermission);
+  await p2Channel.permissionOverwrites.edit(session.p2.id, viewOnlyPermission);
+  await p2Channel.permissionOverwrites.edit(session.p1.id, viewOnlyPermission);
+}
+
 async function handlePlayerTimeout(channel, session, playerKey) {
   // Player went idle for 5 minutes
-  // session.status = `${playerKey}_idle_timeout`;
-
-  // Stop their current collector
-  // const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
-  // if (playerObj.currentCollector) {
-  //   playerObj.currentCollector.stop('idle_timeout');
-  // }
-
-  // stopCollectors(session, playerKey, 'idle_timeout');
-  // const playerObj = session[playerKey];
-  // if (playerObj.collectors) {
-  //   // Stop all collectors in the collectors object
-  //   Object.keys(playerObj.collectors).forEach((collectorKey) => {
-  //     const collector = playerObj.collectors[collectorKey];
-  //     if (collector && !collector.ended) {
-  //       collector.stop('timeout');
-  //     }
-  //   });
-
-  //   // Clear the collectors object
-  //   playerObj.collectors = {};
-  // }
-
   finishSession(session, `${playerKey}_idle_timeout`);
 
-  // Send timeout message
+  const opponentKey = playerKey === 'p1' ? 'p2' : 'p1';
+  const opponentChannelId = session[opponentKey].textChannelId;
+
+  // Send timeout message to current player
   await channel.send('⏰ You went idle for too long. Game session ended.');
+
+  const opponentChannel = await channel.client.channels.fetch(opponentChannelId);
+  await opponentChannel.send('⏰ Your opponent went idle for too long. Game session ended.');
+
+  // Make channels view only
+  await sessionChannelsViewOnly(session, channel.client);
+
   console.log('FROM handlePlayerTimeout() NIGGA');
   console.log(session);
 }
@@ -343,4 +325,5 @@ module.exports = {
   stopIdleTimer,
   createGamePhaseInSession,
   finishSession,
+  sessionChannelsViewOnly,
 };

@@ -1,25 +1,26 @@
-const BOARD_WIDTH = 5;
-const BOARD_HEIGHT = 5;
+const BOARD_WIDTH = 8;
+const BOARD_HEIGHT = 8;
 
 const SEA = 0;
-// const SEA_ICON = '≈';
 const SEA_ICON = ' ';
 
+const TIMEOUT_TIME = 300_000; // 5 minutes
+
 const SHIPS = [
-  // {
-  //   id: 1,
-  //   name: 'Carrier',
-  //   length: 5,
-  //   emoji: '🛳',
-  //   icon: '◆',
-  // },
-  // {
-  //   id: 2,
-  //   name: 'Battleship',
-  //   length: 4,
-  //   emoji: '⚔️',
-  //   icon: '■',
-  // },
+  {
+    id: 1,
+    name: 'Carrier',
+    length: 5,
+    emoji: '🛳',
+    icon: '◆',
+  },
+  {
+    id: 2,
+    name: 'Battleship',
+    length: 4,
+    emoji: '⚔️',
+    icon: '■',
+  },
   {
     id: 3,
     name: 'Destroyer',
@@ -27,20 +28,20 @@ const SHIPS = [
     emoji: '🚢',
     icon: '▲',
   },
-  // {
-  //   id: 4,
-  //   name: 'Submarine',
-  //   length: 3,
-  //   emoji: '🫧',
-  //   icon: '●',
-  // },
-  // {
-  //   id: 5,
-  //   name: 'Patrol Boat',
-  //   length: 2,
-  //   emoji: '🚤',
-  //   icon: '★',
-  // },
+  {
+    id: 4,
+    name: 'Submarine',
+    length: 3,
+    emoji: '🫧',
+    icon: '●',
+  },
+  {
+    id: 5,
+    name: 'Patrol Boat',
+    length: 2,
+    emoji: '🚤',
+    icon: '★',
+  },
 ];
 
 const GUESS = {
@@ -62,6 +63,7 @@ const MOVE_RESULT = {
 module.exports = {
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  TIMEOUT_TIME,
   SEA,
   SEA_ICON,
   SHIPS,

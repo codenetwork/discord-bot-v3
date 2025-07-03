@@ -1,9 +1,10 @@
+const { TIMEOUT_TIME } = require('./constants');
 function createCollector(message, session, playerKey, onCollect) {
   const playerId = session[playerKey].id;
 
   const collector = message.createMessageComponentCollector({
     filter: (i) => i.user.id === playerId,
-    time: 300_000, // 5 minutes
+    time: TIMEOUT_TIME,
   });
 
   collector.on('collect', async (interaction) => {

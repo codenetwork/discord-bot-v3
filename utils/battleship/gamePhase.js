@@ -14,6 +14,7 @@ const {
   createGamePhaseInSession,
   resetIdleTimer,
   finishSession,
+  sessionChannelsViewOnly,
 } = require('./sessionManagement');
 const {
   boardRepresentation,
@@ -391,29 +392,14 @@ async function handleOnCollect(interaction, session, playerKey) {
 
         await startTurn(session, p1Channel, p2Channel);
       } else {
+        // Tell both players who won (and lost)
         await announceWinner(session, p1Channel, p2Channel, attackerKey);
+
+        // Mark session as finishe
         finishSession(session, `${attackerKey}_win`);
 
-        // Make channels view only
-        const viewOnlyPermission = {
-          ViewChannel: true,
-          SendMessages: false,
-          AddReactions: false,
-        };
-        await p1Channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone.id,
-          viewOnlyPermission
-        );
-        await p2Channel.permissionOverwrites.edit(
-          interaction.guild.roles.everyone.id,
-          viewOnlyPermission
-        );
-
-        // Overwrite p1 and p2's permissions to respective channels
-        await p1Channel.permissionOverwrites.edit(session.p1.id, viewOnlyPermission);
-        await p1Channel.permissionOverwrites.edit(session.p2.id, viewOnlyPermission);
-        await p2Channel.permissionOverwrites.edit(session.p2.id, viewOnlyPermission);
-        await p2Channel.permissionOverwrites.edit(session.p1.id, viewOnlyPermission);
+        // Make both channels view only and everyone else in the server able to see
+        sessionChannelsViewOnly(session, interaction.client);
       }
 
       break;

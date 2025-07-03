@@ -164,7 +164,7 @@ module.exports = {
       const inviter = interaction.user;
       const invitee = interaction.options.getUser('player');
 
-      // In case invitee is invalid
+      // Validation
       if (!invitee || inviter.id == invitee.id) {
         return await interaction.reply({
           content: 'You must invite a valid player!',
@@ -176,141 +176,135 @@ module.exports = {
         return;
       }
 
-      // Creates a new session,
-      // also adds to `sessions`
+      // Create session
       const session = createSession(inviter, invitee);
 
+      // Build DM components
+      const accept = new ButtonBuilder()
+        .setCustomId('accept_invite')
+        .setLabel('Accept')
+        .setStyle(ButtonStyle.Success);
+
+      const deny = new ButtonBuilder()
+        .setCustomId('deny_invite')
+        .setLabel('Deny')
+        .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder().addComponents(accept, deny);
+
+      // Try to send DM
       try {
-        // Build DM message
-        const accept = new ButtonBuilder()
-          .setCustomId('accept_invite')
-          .setLabel('Accept')
-          .setStyle(ButtonStyle.Success);
+        const dmMessage = await invitee.send({
+          content: `You've been invited by ${inviter} to play Battleship!`,
+          components: [row],
+        });
 
-        const deny = new ButtonBuilder()
-          .setCustomId('deny_invite')
-          .setLabel('Deny')
-          .setStyle(ButtonStyle.Danger);
+        session.dm = { channelId: dmMessage.channel.id, messageId: dmMessage.id };
 
-        const row = new ActionRowBuilder().addComponents(accept, deny);
+        // Create collector for the DM message
+        const collector = dmMessage.createMessageComponentCollector({
+          filter: (i) => i.user.id === invitee.id,
+          time: 60_000, // 60 seconds to accept or deny
+        });
 
-        // Try sending DM message to invitee
-        let dmMessage;
-        try {
-          dmMessage = await invitee.send({
-            content: `You've been invited by ${inviter} to play Battleship!`,
-            components: [row],
-            withResponse: true,
-          });
+        // Store collector reference in session for cleanup
+        session.inviteCollector = collector;
 
-          session.dm = { channelId: dmMessage.channel.id, messageId: dmMessage.id };
+        collector.on('collect', async (inviteeResponse) => {
+          try {
+            if (inviteeResponse.customId === 'accept_invite') {
+              // Invitee accepts the invitation
+              await sessionInit(interaction, session, inviter, invitee);
+              console.log(sessions);
 
-          // Tell inviter that the invitation has been sent
-          await interaction.reply({
-            content: `Invitation sent to ${invitee}.`,
-            ephemeral: MessageFlags.Ephemeral,
-          });
-        } catch (dmError) {
-          console.error('Failed to send DM: ', dmError);
-          return await interaction.reply({
-            content: `Could not send a DM to ${invitee} They may have DMs disabled.`,
-            ephemeral: MessageFlags.Ephemeral,
-          });
-        }
+              // Start the board setup phase
+              await startBoardSetup(interaction, session);
 
-        try {
-          // Wait for invitee's response
-          const inviteeFilter = (i) => i.user.id === invitee.id;
+              // Tell invitee they've accepted
+              await inviteeResponse.update({
+                content: `You accepted an invite from ${inviter} to play Battleship! Head over to your game channel <#${session.p2.textChannelId}>`,
+                components: [],
+              });
 
-          const inviteeResponse = await dmMessage.awaitMessageComponent({
-            filter: inviteeFilter,
-            time: 60_000, // 60 seconds to accept the invite
-          });
+              // Tell inviter that invitee accepted
+              await interaction.followUp({
+                content: `${invitee} has accepted your invite! Head over to your game channel <#${session.p1.textChannelId}>`,
+                ephemeral: MessageFlags.Ephemeral,
+              });
+            } else if (inviteeResponse.customId === 'deny_invite') {
+              // Invitee denies the invitation
+              denySession(session);
+              console.log(sessions);
 
-          // Handle invitee's response
-          if (inviteeResponse.customId === 'accept_invite') {
-            // Invitee accepts the invitation
+              // Tell invitee they've denied
+              await inviteeResponse.update({
+                content: `You denied ${inviter}'s invite!`,
+                components: [],
+              });
 
-            // Initialize session
-            await sessionInit(interaction, session, inviter, invitee);
+              // Tell inviter that invitee denied
+              await interaction.followUp({
+                content: `${invitee} has denied your invite!`,
+                ephemeral: MessageFlags.Ephemeral,
+              });
+            }
+          } catch (error) {
+            console.error('Error handling invite response:', error);
+          }
+        });
+
+        collector.on('end', async (collected, reason) => {
+          // Clean up collector reference
+          delete session.inviteCollector;
+
+          // Handle timeout if invite is still pending
+          if (reason === 'time' && session.status === 'invite_pending') {
+            expireSession(session);
             console.log(sessions);
 
-            // Sends initial message on respective players' channels
-            startBoardSetup(interaction, session);
+            // Create disabled buttons
+            const disabledRow = new ActionRowBuilder().addComponents(
+              ButtonBuilder.from(accept).setDisabled(true),
+              ButtonBuilder.from(deny).setDisabled(true)
+            );
 
-            // Tell invintee that they've accepted the invitation
-            await inviteeResponse.update({
-              content: `You accepted an invite from ${inviter} to play Battleship! Head over to your game channel <#${session.p2.textChannelId}>`,
-              components: [],
-            });
+            try {
+              // Tell invitee the invitation expired
+              await dmMessage.edit({
+                content: `You've been invited by ${inviter} to play Battleship!\nUnfortunately, you didn't respond in time.`,
+                components: [disabledRow],
+              });
 
-            // Tell inviter that invitee has accepted the invitation
-            return await interaction.followUp({
-              content: `${invitee} has accepted your invite! Head over to your game channel <#${session.p1.textChannelId}>`,
-              ephemeral: MessageFlags.Ephemeral,
-            });
-          } else if (inviteeResponse.customId === 'deny_invite') {
-            // Invitee denies the invitation
-
-            // Mark session's invitation as denied
-            denySession(session);
-            console.log(sessions);
-
-            // Tell invitee that they've denied the invitation
-            await inviteeResponse.update({
-              content: `You denied ${inviter}'s invite!`,
-              components: [],
-            });
-
-            // Tell inviter that invitee has denied the invitation
-            return await interaction.followUp({
-              content: `${invitee} has denied your invite!`,
-              ephemeral: MessageFlags.Ephemeral,
-            });
+              // Tell inviter the invitation expired
+              await interaction.followUp({
+                content: `${invitee} didn't respond to the invite in time.`,
+                ephemeral: MessageFlags.Ephemeral,
+              });
+            } catch (error) {
+              console.error('Error handling invite timeout:', error);
+            }
           }
-        } catch (timeoutError) {
-          console.error('Invitation timed out:', timeoutError);
+        });
 
-          // Check if the invite is still pending (aka not cancelled)
-          if (session.status !== 'invite_pending') {
-            return;
-          }
-
-          // Mark session's invitation as expired
-          expireSession(session);
-          console.log(sessions);
-
-          // Set buttons to disabled
-          accept.setDisabled(true);
-          deny.setDisabled(true);
-
-          // Tell invitee that the invitation has expired
-          await dmMessage.edit({
-            content: `You've been invited by ${inviter} to play Battleship!\nUnfortunately, you didn't respond in time.`,
-            components: [row],
-          });
-
-          // Tell inviter that the invitation has expired
-          return await interaction.followUp({
-            content: `${invitee} didn't respond to the invite in time.`,
-            ephemeral: MessageFlags.Ephemeral,
-          });
-        }
-      } catch (error) {
-        console.error('Unexpected error:', error);
-        return interaction.reply({
-          content: 'An unexpected error occurred while processing the invite.',
+        // Tell inviter invitation was sent successfully
+        await interaction.reply({
+          content: `Invitation sent to ${invitee}.`,
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      } catch (dmError) {
+        console.error('Failed to send DM:', dmError);
+        return await interaction.reply({
+          content: `Could not send a DM to ${invitee}. They may have DMs disabled.`,
           ephemeral: MessageFlags.Ephemeral,
         });
       }
     } else if (subcommand === 'invite-cancel') {
-      const client = interaction.client;
       const inviter = interaction.user;
       const pendingInviteSession = sessions.find(
         (session) => session.p1.id === inviter.id && session.status === 'invite_pending'
       );
 
-      // Doesn't have pending invites
+      // Check if user has pending invites
       if (!pendingInviteSession) {
         return interaction.reply({
           content: "You don't have any pending invites!",
@@ -318,32 +312,46 @@ module.exports = {
         });
       }
 
-      const invitee = await client.users.fetch(pendingInviteSession.p2.id);
+      const invitee = await interaction.client.users.fetch(pendingInviteSession.p2.id);
 
-      // Getting dmInteraction
-      const { channelId: dmChannelId, messageId: dmMessageId } = pendingInviteSession.dm;
-      const dmChannel = await client.channels.fetch(dmChannelId);
-      const dmMessage = await dmChannel.messages.fetch(dmMessageId);
+      // Stop the collector if it exists
+      if (pendingInviteSession.inviteCollector) {
+        pendingInviteSession.inviteCollector.stop('cancelled');
+      }
 
-      // Set buttons to disabled
-      const row = ActionRowBuilder.from(dmMessage.components[0]);
-      row.components = row.components.map((component) =>
-        ButtonBuilder.from(component).setDisabled(true)
-      );
+      try {
+        // Get DM message and disable buttons
+        const { channelId: dmChannelId, messageId: dmMessageId } = pendingInviteSession.dm;
+        const dmChannel = await interaction.client.channels.fetch(dmChannelId);
+        const dmMessage = await dmChannel.messages.fetch(dmMessageId);
 
-      cancelSession(pendingInviteSession);
+        // Create disabled buttons from existing components
+        const row = ActionRowBuilder.from(dmMessage.components[0]);
+        row.components = row.components.map((component) =>
+          ButtonBuilder.from(component).setDisabled(true)
+        );
 
-      // Tell invitee that the invite is cancelled
-      await dmMessage.edit({
-        content: `You've been invited by ${inviter} to play Battleship!\n${inviter} cancelled the invitation.`,
-        components: [row],
-      });
+        // Mark session as cancelled
+        cancelSession(pendingInviteSession);
 
-      // Tell the inviter that the cancellation has been made
-      return await interaction.reply({
-        content: `Your invite to ${invitee} has been cancelled!`,
-        ephemeral: MessageFlags.Ephemeral,
-      });
+        // Tell invitee the invite was cancelled
+        await dmMessage.edit({
+          content: `You've been invited by ${inviter} to play Battleship!\n${inviter} cancelled the invitation.`,
+          components: [row],
+        });
+
+        // Tell inviter the cancellation was successful
+        return await interaction.reply({
+          content: `Your invite to ${invitee} has been cancelled!`,
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      } catch (error) {
+        console.error('Error cancelling invite:', error);
+        return await interaction.reply({
+          content: 'Failed to cancel the invite. It may have already been responded to.',
+          ephemeral: MessageFlags.Ephemeral,
+        });
+      }
     }
   },
 };

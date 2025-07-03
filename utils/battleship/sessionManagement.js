@@ -288,9 +288,18 @@ function stopIdleTimer(session, playerKey) {
   stopCollectors(session, playerKey);
 }
 
+function finishSession(session, status = null) {
+  stopIdleTimer(session, 'p1');
+  stopIdleTimer(session, 'p2');
+
+  if (status !== null) {
+    session.status = status;
+  }
+}
+
 async function handlePlayerTimeout(channel, session, playerKey) {
   // Player went idle for 5 minutes
-  session.status = `${playerKey}_idle_timeout`;
+  // session.status = `${playerKey}_idle_timeout`;
 
   // Stop their current collector
   // const playerObj = playerKey === 'p1' ? session.p1 : session.p2;
@@ -298,7 +307,7 @@ async function handlePlayerTimeout(channel, session, playerKey) {
   //   playerObj.currentCollector.stop('idle_timeout');
   // }
 
-  stopCollectors(session, playerKey, 'idle_timeout');
+  // stopCollectors(session, playerKey, 'idle_timeout');
   // const playerObj = session[playerKey];
   // if (playerObj.collectors) {
   //   // Stop all collectors in the collectors object
@@ -312,6 +321,8 @@ async function handlePlayerTimeout(channel, session, playerKey) {
   //   // Clear the collectors object
   //   playerObj.collectors = {};
   // }
+
+  finishSession(session, `${playerKey}_idle_timeout`);
 
   // Send timeout message
   await channel.send('⏰ You went idle for too long. Game session ended.');
@@ -331,4 +342,5 @@ module.exports = {
   resetIdleTimer,
   stopIdleTimer,
   createGamePhaseInSession,
+  finishSession,
 };

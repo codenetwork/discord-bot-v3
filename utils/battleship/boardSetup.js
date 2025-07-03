@@ -9,150 +9,16 @@ const {
   SeparatorBuilder,
   SeparatorSpacingSize,
 } = require('discord.js');
-const { SEA, SEA_ICON, SHIPS, BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
+const { BOARD_HEIGHT, BOARD_WIDTH } = require('./constants');
 const { startIdleTimer, resetIdleTimer, stopIdleTimer } = require('./sessionManagement');
 const { createCollector } = require('./interactionHandlers');
 const { startGamePhase } = require('./gamePhase');
-
-function boardRepresentation(board) {
-  const parts = ['```\n'];
-  const width = board[0].length;
-  const height = board.length;
-
-  // Column headers
-  parts.push('    ');
-  for (let i = 1; i <= width; i++) {
-    if (i < 10) {
-      parts.push(`${i}   `);
-    } else {
-      parts.push(`${i}  `);
-    }
-  }
-  parts.push('\n');
-
-  // Top border
-  parts.push('  ┌');
-  for (let i = 0; i < width; i++) {
-    parts.push('───');
-    if (i < width - 1) {
-      parts.push('┬');
-    }
-  }
-  parts.push('┐\n');
-
-  // Board rows
-  board.forEach((row, idx) => {
-    const asciiValA = 'A'.charCodeAt(0);
-    const rowChar = String.fromCharCode(asciiValA + idx);
-
-    // Row content
-    parts.push(`${rowChar} │`);
-    row.forEach((cell) => {
-      const icon = SHIPS.find((ship) => ship.id === cell)?.icon || SEA_ICON;
-      parts.push(` ${icon} │`);
-    });
-    parts.push('\n');
-
-    // Row separator (except for last row)
-    if (idx < height - 1) {
-      parts.push('  ├');
-      for (let i = 0; i < width; i++) {
-        parts.push('───');
-        if (i < width - 1) {
-          parts.push('┼');
-        }
-      }
-      parts.push('┤\n');
-    }
-  });
-
-  // Bottom border
-  parts.push('  └');
-  for (let i = 0; i < width; i++) {
-    parts.push('───');
-    if (i < width - 1) {
-      parts.push('┴');
-    }
-  }
-  parts.push('┘\n```');
-
-  return parts.join('');
-}
-
-function isPlacementValid(session, playerKey) {
-  const { board, boardSetup } = session[playerKey];
-
-  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
-
-  // If any of the selections are incomplete
-  if (!selectedShip || !selectedOrientation || !selectedRow || !selectedColumn) {
-    return false;
-  }
-
-  const { length: shipLength } = selectedShip;
-  const colIdx = selectedColumn - 1; // column in indexes
-  const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0); // row in indexes
-
-  // Ensure that the ship doesn't go over the board and is not overlapping
-  // any other ships
-  if (selectedOrientation === 'Horizontal') {
-    if (colIdx + shipLength > BOARD_WIDTH) return false;
-
-    for (let i = 0; i < shipLength; i++) {
-      if (board[rowIdx][colIdx + i] !== SEA) {
-        return false;
-      }
-    }
-  } else {
-    if (rowIdx + shipLength > BOARD_HEIGHT) return false;
-
-    for (let i = 0; i < shipLength; i++) {
-      if (board[rowIdx + i][colIdx] !== SEA) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-function generateShipPlacementBoard(session, playerKey) {
-  const { board, boardSetup } = session[playerKey];
-  const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
-
-  const { id: shipId, length: shipLength } = selectedShip;
-  const colIdx = selectedColumn - 1; // column in indexes
-  const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0); // row in indexes
-
-  const isHorizontal = selectedOrientation === 'Horizontal';
-  const colInc = isHorizontal ? 1 : 0;
-  const rowInc = isHorizontal ? 0 : 1;
-
-  const boardCopy = structuredClone(board);
-  for (let i = 0; i < shipLength; i++) {
-    boardCopy[rowIdx + i * rowInc][colIdx + i * colInc] = shipId;
-  }
-
-  return boardCopy;
-}
-
-function generateShipRemovalBoard(session, playerKey) {
-  const { board, boardSetup } = session[playerKey];
-  const { selectedRemoveShip } = boardSetup;
-  const { id: removeShipId } = selectedRemoveShip;
-
-  // Delete ship by iterating every cell
-  const boardCopy = structuredClone(board);
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board[i].length; j++) {
-      if (boardCopy[i][j] === removeShipId) {
-        boardCopy[i][j] = SEA;
-      }
-    }
-  }
-
-  return boardCopy;
-}
+const {
+  boardRepresentation,
+  isPlacementValid,
+  generateShipPlacementBoard,
+  generateShipRemovalBoard,
+} = require('./boardUtils');
 
 function generateMainInterface(session, playerKey) {
   const board = session[playerKey].board;

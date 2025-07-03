@@ -27,20 +27,20 @@ const SHIPS = [
     emoji: '🚢',
     icon: '▲',
   },
-  {
-    id: 4,
-    name: 'Submarine',
-    length: 3,
-    emoji: '🫧',
-    icon: '●',
-  },
-  {
-    id: 5,
-    name: 'Patrol Boat',
-    length: 2,
-    emoji: '🚤',
-    icon: '★',
-  },
+  // {
+  //   id: 4,
+  //   name: 'Submarine',
+  //   length: 3,
+  //   emoji: '🫧',
+  //   icon: '●',
+  // },
+  // {
+  //   id: 5,
+  //   name: 'Patrol Boat',
+  //   length: 2,
+  //   emoji: '🚤',
+  //   icon: '★',
+  // },
 ];
 
 const GUESS = {

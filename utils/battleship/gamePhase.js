@@ -8,205 +8,19 @@ const {
   ButtonStyle,
 } = require('discord.js');
 const { createCollector } = require('./interactionHandlers');
+const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH, MOVE_RESULT, SHIPS } = require('./constants');
 const {
-  SEA,
-  SEA_ICON,
-  GUESS,
-  BOARD_HEIGHT,
-  BOARD_WIDTH,
-  MOVE_RESULT,
-  SHIPS,
-} = require('./constants');
-const { startIdleTimer, createGamePhaseInSession, resetIdleTimer } = require('./sessionManagement');
-
-function isShipSunk(opponentBoard, guesses, shipId) {
-  // Don't check if it's water
-  if (shipId === SEA) {
-    return false;
-  }
-
-  // Find all positions of this ship and check if they're all hit
-  for (let row = 0; row < opponentBoard.length; row++) {
-    for (let col = 0; col < opponentBoard[row].length; col++) {
-      if (opponentBoard[row][col] === shipId) {
-        // Found a piece of this ship - check if it's been hit
-        if (guesses[row][col] !== GUESS.HIT_ID) {
-          return false; // This piece hasn't been hit yet
-        }
-      }
-    }
-  }
-  return true; // All pieces of this ship have been hit
-}
-
-function guessesRepresentation(guesses, opponentBoard) {
-  const parts = ['```\n'];
-  const width = guesses[0].length;
-  const height = guesses.length;
-
-  // Column headers
-  parts.push('    ');
-  for (let i = 1; i <= width; i++) {
-    if (i < 10) {
-      parts.push(`${i}   `);
-    } else {
-      parts.push(`${i}  `);
-    }
-  }
-  parts.push('\n');
-
-  // Top border
-  parts.push('  ┌');
-  for (let i = 0; i < width; i++) {
-    parts.push('───');
-    if (i < width - 1) {
-      parts.push('┬');
-    }
-  }
-  parts.push('┐\n');
-
-  // Board rows
-  guesses.forEach((row, idx) => {
-    const asciiValA = 'A'.charCodeAt(0);
-    const rowChar = String.fromCharCode(asciiValA + idx);
-
-    // Row content
-    parts.push(`${rowChar} │`);
-    row.forEach((cell, colIdx) => {
-      let icon;
-
-      if (cell === GUESS.UNGUESSED_ID) {
-        icon = GUESS.UNGUESSED_ICON;
-      } else if (cell === GUESS.MISS_ID) {
-        icon = GUESS.MISS_ICON;
-      } else if (cell === GUESS.HIT_ID) {
-        // Check if the ship at this position is sunk
-        const shipId = opponentBoard[idx][colIdx];
-        if (isShipSunk(opponentBoard, guesses, shipId)) {
-          icon = GUESS.SUNK_SHIP_ICON;
-        } else {
-          icon = GUESS.HIT_ICON;
-        }
-      } else {
-        // Fallback for unexpected values
-        icon = '?';
-      }
-
-      parts.push(` ${icon} │`);
-    });
-    parts.push('\n');
-
-    // Row separator (except for last row)
-    if (idx < height - 1) {
-      parts.push('  ├');
-      for (let i = 0; i < width; i++) {
-        parts.push('───');
-        if (i < width - 1) {
-          parts.push('┼');
-        }
-      }
-      parts.push('┤\n');
-    }
-  });
-
-  // Bottom border
-  parts.push('  └');
-  for (let i = 0; i < width; i++) {
-    parts.push('───');
-    if (i < width - 1) {
-      parts.push('┴');
-    }
-  }
-  parts.push('┘\n```');
-
-  return parts.join('');
-}
-
-function defenderBoardWithDamage(attackerGuesses, defenderBoard) {
-  const parts = ['```\n'];
-  const width = defenderBoard[0].length;
-  const height = defenderBoard.length;
-
-  // Column headers
-  parts.push('    ');
-  for (let i = 1; i <= width; i++) {
-    if (i < 10) {
-      parts.push(`${i}   `);
-    } else {
-      parts.push(`${i}  `);
-    }
-  }
-  parts.push('\n');
-
-  // Top border
-  parts.push('  ┌');
-  for (let i = 0; i < width; i++) {
-    parts.push('───');
-    if (i < width - 1) {
-      parts.push('┬');
-    }
-  }
-  parts.push('┐\n');
-
-  // Board rows
-  defenderBoard.forEach((row, idx) => {
-    const asciiValA = 'A'.charCodeAt(0);
-    const rowChar = String.fromCharCode(asciiValA + idx);
-
-    // Row content
-    parts.push(`${rowChar} │`);
-    row.forEach((cell, colIdx) => {
-      let icon;
-
-      // Check if this position has been attacked
-      const guessState = attackerGuesses[idx][colIdx];
-
-      if (guessState === GUESS.MISS_ID) {
-        // Show miss regardless of what's underneath
-        icon = GUESS.MISS_ICON;
-      } else if (guessState === GUESS.HIT_ID) {
-        // Show hit or sunk if ship is destroyed
-        const shipId = defenderBoard[idx][colIdx];
-        if (shipId !== SEA && isShipSunk(defenderBoard, attackerGuesses, shipId)) {
-          icon = GUESS.SUNK_SHIP_ICON;
-        } else {
-          icon = GUESS.HIT_ICON;
-        }
-      } else {
-        // No attack here yet - show original board content
-        const shipIcon = SHIPS.find((ship) => ship.id === cell)?.icon || SEA_ICON;
-        icon = shipIcon;
-      }
-
-      parts.push(` ${icon} │`);
-    });
-    parts.push('\n');
-
-    // Row separator (except for last row)
-    if (idx < height - 1) {
-      parts.push('  ├');
-      for (let i = 0; i < width; i++) {
-        parts.push('───');
-        if (i < width - 1) {
-          parts.push('┼');
-        }
-      }
-      parts.push('┤\n');
-    }
-  });
-
-  // Bottom border
-  parts.push('  └');
-  for (let i = 0; i < width; i++) {
-    parts.push('───');
-    if (i < width - 1) {
-      parts.push('┴');
-    }
-  }
-  parts.push('┘\n```');
-
-  return parts.join('');
-}
+  startIdleTimer,
+  createGamePhaseInSession,
+  resetIdleTimer,
+  finishSession,
+} = require('./sessionManagement');
+const {
+  boardRepresentation,
+  isShipSunk,
+  guessesRepresentation,
+  defenderBoardWithDamage,
+} = require('./boardUtils');
 
 /*
   const move = {
@@ -490,6 +304,38 @@ async function sendDefenderUpdate(interaction, session, defenderKey, move) {
   });
 }
 
+async function announceWinner(session, p1Channel, p2Channel, winnerKey, move) {
+  const isP1Winner = winnerKey === 'p1';
+  const winner = session[winnerKey];
+  const loserKey = isP1Winner ? 'p2' : 'p1';
+  const loser = session[loserKey];
+  const winnerChannel = isP1Winner ? p1Channel : p2Channel;
+  const loserChannel = isP1Winner ? p2Channel : p1Channel;
+
+  const { board: winnerBoard, id: winnerId } = winner;
+  const { board: loserBoard, id: loserId } = loser;
+
+  const winnerBoardText = boardRepresentation(winnerBoard);
+  const loserBoardText = boardRepresentation(loserBoard);
+
+  const winnerTextDisplay = new TextDisplayBuilder().setContent(
+    `# You have won! 🥳🏆\nThis is <@${loserId}>'s board:\n${loserBoardText}`
+  );
+  const loserTextDisplay = new TextDisplayBuilder().setContent(
+    `# You have lost! 😞\nThis is <@${winnerId}>'s board:\n${winnerBoardText}`
+  );
+
+  await winnerChannel.send({
+    components: [winnerTextDisplay],
+    flags: MessageFlags.IsComponentsV2,
+  });
+
+  await loserChannel.send({
+    components: [loserTextDisplay],
+    flags: MessageFlags.IsComponentsV2,
+  });
+}
+
 async function handleOnCollect(interaction, session, playerKey) {
   const { gamePhase } = session;
 
@@ -518,6 +364,8 @@ async function handleOnCollect(interaction, session, playerKey) {
       console.log('THE MOVE THAT WAS MADE!');
       console.log(move);
 
+      const isGameOngoing = move.remainingShips !== 0;
+
       const attackerKey = playerKey;
       const defenderKey = playerKey === 'p1' ? 'p2' : 'p1';
       await sendAttackerUpdate(interaction, session, attackerKey, move);
@@ -532,14 +380,41 @@ async function handleOnCollect(interaction, session, playerKey) {
         collectors.moveFeedbackCollector.stop();
       }
 
-      // Prepare game phase for next turn
-      gamePhase.turn = gamePhase.turn === 'p1' ? 'p2' : 'p1'; // Next player's turn
-      gamePhase.selectedRow = null;
-      gamePhase.selectedColumn = null;
-
       const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
       const p2Channel = await interaction.client.channels.fetch(session.p2.textChannelId);
-      await startTurn(session, p1Channel, p2Channel);
+
+      if (isGameOngoing) {
+        // Prepare game phase for next turn
+        gamePhase.turn = gamePhase.turn === 'p1' ? 'p2' : 'p1'; // Next player's turn
+        gamePhase.selectedRow = null;
+        gamePhase.selectedColumn = null;
+
+        await startTurn(session, p1Channel, p2Channel);
+      } else {
+        await announceWinner(session, p1Channel, p2Channel, attackerKey);
+        finishSession(session, `${attackerKey}_win`);
+
+        // Make channels view only
+        const viewOnlyPermission = {
+          ViewChannel: true,
+          SendMessages: false,
+          AddReactions: false,
+        };
+        await p1Channel.permissionOverwrites.edit(
+          interaction.guild.roles.everyone.id,
+          viewOnlyPermission
+        );
+        await p2Channel.permissionOverwrites.edit(
+          interaction.guild.roles.everyone.id,
+          viewOnlyPermission
+        );
+
+        // Overwrite p1 and p2's permissions to respective channels
+        await p1Channel.permissionOverwrites.edit(session.p1.id, viewOnlyPermission);
+        await p1Channel.permissionOverwrites.edit(session.p2.id, viewOnlyPermission);
+        await p2Channel.permissionOverwrites.edit(session.p2.id, viewOnlyPermission);
+        await p2Channel.permissionOverwrites.edit(session.p1.id, viewOnlyPermission);
+      }
 
       break;
 

@@ -247,10 +247,10 @@ function guessesRepresentation(guesses, opponentBoard) {
   return parts.join('');
 }
 
-function defenderBoardWithDamage(attackerGuesses, defenderBoard) {
+function boardWithDamageRepresentation(board, opponentGuesses) {
   const parts = ['```\n'];
-  const width = defenderBoard[0].length;
-  const height = defenderBoard.length;
+  const width = board[0].length;
+  const height = board.length;
 
   // Column headers
   parts.push('    ');
@@ -274,7 +274,7 @@ function defenderBoardWithDamage(attackerGuesses, defenderBoard) {
   parts.push('┐\n');
 
   // Board rows
-  defenderBoard.forEach((row, idx) => {
+  board.forEach((row, idx) => {
     const asciiValA = 'A'.charCodeAt(0);
     const rowChar = String.fromCharCode(asciiValA + idx);
 
@@ -284,15 +284,15 @@ function defenderBoardWithDamage(attackerGuesses, defenderBoard) {
       let icon;
 
       // Check if this position has been attacked
-      const guessState = attackerGuesses[idx][colIdx];
+      const guessState = opponentGuesses[idx][colIdx];
 
       if (guessState === GUESS.MISS_ID) {
         // Show miss regardless of what's underneath
         icon = GUESS.MISS_ICON;
       } else if (guessState === GUESS.HIT_ID) {
         // Show hit or sunk if ship is destroyed
-        const shipId = defenderBoard[idx][colIdx];
-        if (shipId !== SEA && isShipSunk(defenderBoard, attackerGuesses, shipId)) {
+        const shipId = board[idx][colIdx];
+        if (shipId !== SEA && isShipSunk(board, opponentGuesses, shipId)) {
           icon = GUESS.SUNK_SHIP_ICON;
         } else {
           icon = GUESS.HIT_ICON;
@@ -340,5 +340,5 @@ module.exports = {
   generateShipRemovalBoard,
   isShipSunk,
   guessesRepresentation,
-  defenderBoardWithDamage,
+  boardWithDamageRepresentation,
 };

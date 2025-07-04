@@ -1,5 +1,5 @@
 const { ChannelType, PermissionsBitField, MessageFlags } = require('discord.js');
-const { BOARD_HEIGHT, BOARD_WIDTH, SEA, SHIPS, TIMEOUT_TIME } = require('./constants');
+const { BOARD_HEIGHT, BOARD_WIDTH, SEA, SHIPS, TIMEOUT_IDLE } = require('./constants');
 
 const sessions = [];
 
@@ -237,7 +237,7 @@ function startIdleTimer(channel, session, playerKey) {
 
   playerObj.idleTimer = setTimeout(() => {
     handlePlayerTimeout(channel, session, playerKey);
-  }, TIMEOUT_TIME);
+  }, TIMEOUT_IDLE);
 }
 
 function resetIdleTimer(channel, session, playerKey) {

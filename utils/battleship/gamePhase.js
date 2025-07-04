@@ -21,21 +21,8 @@ const {
   boardRepresentation,
   isShipSunk,
   guessesRepresentation,
-  defenderBoardWithDamage,
+  boardWithDamageRepresentation,
 } = require('./boardUtils');
-
-/*
-  const move = {
-  turn: 1,                    // Turn number
-  position: { row: 'A', col: 3 },  // Human-readable position
-  coordinates: { row: 0, col: 2 }, // Array indices
-  result: 'hit',              // 'hit', 'miss', 'sunk'
-  shipHit: 2,                 // Ship ID if hit, null if miss
-  shipSunk: null,             // Ship ID if sunk, null otherwise
-  timestamp: new Date(),
-  remainingShips: 4           // Ships left after this move
-};
- */
 
 function countRemainingShips(opponentBoard, guesses) {
   // Get all unique ship IDs from the board (excluding SEA)
@@ -206,10 +193,10 @@ async function sendMoveFeedback(interaction, session, playerKey) {
     gamePhase.moveFeedbackMessageId = confirmGuessMessage.id;
 
     const { collectors } = session[playerKey];
-    if (collectors.moveFeedbackCollector) {
-      collectors.moveFeedbackCollector.stop();
+    if (collectors.moveFeedback) {
+      collectors.moveFeedback.stop();
     }
-    collectors.moveFeedbackCollector = createCollector(
+    collectors.moveFeedback = createCollector(
       confirmGuessMessage,
       session,
       playerKey,
@@ -297,7 +284,7 @@ async function sendDefenderUpdate(interaction, session, defenderKey, move) {
   const attackerKey = defenderKey === 'p1' ? 'p2' : 'p1';
   resultText +=
     '\nYour board:\n' +
-    defenderBoardWithDamage(session[attackerKey].guesses, session[defenderKey].board);
+    boardWithDamageRepresentation(session[defenderKey].board, session[attackerKey].guesses);
   const resultTextDisplay = new TextDisplayBuilder().setContent(resultText);
 
   await defenderChannel.send({
@@ -376,8 +363,8 @@ async function handleOnCollect(interaction, session, playerKey) {
       if (collectors.moveInterface) {
         collectors.moveInterface.stop();
       }
-      if (collectors.moveFeedbackCollector) {
-        collectors.moveFeedbackCollector.stop();
+      if (collectors.moveFeedback) {
+        collectors.moveFeedback.stop();
       }
 
       const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);

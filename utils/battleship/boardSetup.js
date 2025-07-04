@@ -214,10 +214,10 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
 
     // Stop previous collector
     const { collectors } = session[playerKey];
-    if (collectors.placementFeedbackCollector) {
-      collectors.placementFeedbackCollector.stop();
+    if (collectors.placementFeedback) {
+      collectors.placementFeedback.stop();
     }
-    collectors.placementFeedbackCollector = createCollector(
+    collectors.placementFeedback = createCollector(
       placeButtonMessage,
       session,
       playerKey,
@@ -278,10 +278,10 @@ async function sendRemovalFeedback(interaction, session, playerKey) {
 
   // Stop previous collector
   const { collectors } = session[playerKey];
-  if (collectors.removalFeedbackCollector) {
-    collectors.removalFeedbackCollector.stop();
+  if (collectors.removalFeedback) {
+    collectors.removalFeedback.stop();
   }
-  collectors.removalFeedbackCollector = createCollector(
+  collectors.removalFeedback = createCollector(
     removeButtonMessage,
     session,
     playerKey,
@@ -312,13 +312,13 @@ async function startBoardSetup(interaction, session) {
   });
 
   // Create collectors for both messages
-  session.p1.collectors.currentInterfaceCollector = createCollector(
+  session.p1.collectors.currentInterface = createCollector(
     p1Message,
     session,
     'p1',
     handleOnCollect
   );
-  session.p2.collectors.currentInterfaceCollector = createCollector(
+  session.p2.collectors.currentInterface = createCollector(
     p2Message,
     session,
     'p2',
@@ -341,10 +341,10 @@ async function startPlacingFlow(interaction, session, playerKey) {
 
   // Stop previous collector
   const { collectors } = session[playerKey];
-  if (collectors.currentInterfaceCollector) {
-    collectors.currentInterfaceCollector.stop();
+  if (collectors.currentInterface) {
+    collectors.currentInterface.stop();
   }
-  collectors.currentInterfaceCollector = createCollector(
+  collectors.currentInterface = createCollector(
     placeInterfaceMessage,
     session,
     playerKey,
@@ -362,11 +362,11 @@ async function startRemovingFlow(interaction, session, playerKey) {
     flags: MessageFlags.IsComponentsV2,
   });
   const { collectors } = session[playerKey];
-  if (collectors.currentInterfaceCollector) {
-    collectors.currentInterfaceCollector.stop();
+  if (collectors.currentInterface) {
+    collectors.currentInterface.stop();
   }
 
-  collectors.currentInterfaceCollector = createCollector(
+  collectors.currentInterface = createCollector(
     removeInterfaceMessage,
     session,
     playerKey,
@@ -400,8 +400,8 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
       if (shipsToBePlaced.length === 0) {
         await interaction.reply('You have no more ships to be placed 🤪');
 
-        if (collectors.currentInterfaceCollector) {
-          collectors.currentInterfaceCollector.stop();
+        if (collectors.currentInterface) {
+          collectors.currentInterface.stop();
         }
 
         const mainInterfaceMessage = await interaction.channel.send({
@@ -409,7 +409,7 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           flags: MessageFlags.IsComponentsV2,
         });
 
-        collectors.currentInterfaceCollector = createCollector(
+        collectors.currentInterface = createCollector(
           mainInterfaceMessage,
           session,
           playerKey,
@@ -429,8 +429,8 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
       if (shipsAlreadyPlaced.length === 0) {
         await interaction.reply('You have no ships to be removed 🤪');
 
-        if (collectors.currentInterfaceCollector) {
-          collectors.currentInterfaceCollector.stop();
+        if (collectors.currentInterface) {
+          collectors.currentInterface.stop();
         }
 
         const mainInterfaceMessage = await interaction.channel.send({
@@ -438,7 +438,7 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           flags: MessageFlags.IsComponentsV2,
         });
 
-        collectors.currentInterfaceCollector = createCollector(
+        collectors.currentInterface = createCollector(
           mainInterfaceMessage,
           session,
           playerKey,
@@ -583,15 +583,15 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
         flags: MessageFlags.IsComponentsV2,
       });
 
-      if (playerObj.collectors.placementFeedbackCollector) {
-        playerObj.collectors.placementFeedbackCollector.stop();
+      if (playerObj.collectors.placementFeedback) {
+        playerObj.collectors.placementFeedback.stop();
       }
 
-      if (playerObj.collectors.currentInterfaceCollector) {
-        playerObj.collectors.currentInterfaceCollector.stop();
+      if (playerObj.collectors.currentInterface) {
+        playerObj.collectors.currentInterface.stop();
       }
 
-      playerObj.collectors.currentInterfaceCollector = createCollector(
+      playerObj.collectors.currentInterface = createCollector(
         mainInterfaceMessage,
         session,
         playerKey,
@@ -643,15 +643,15 @@ async function handleRemovingInterfaceClick(interaction, session, playerKey) {
         flags: MessageFlags.IsComponentsV2,
       });
 
-      if (playerObj.collectors.removalFeedbackCollector) {
-        playerObj.collectors.removalFeedbackCollector.stop();
+      if (playerObj.collectors.removalFeedback) {
+        playerObj.collectors.removalFeedback.stop();
       }
 
-      if (playerObj.collectors.currentInterfaceCollector) {
-        playerObj.collectors.currentInterfaceCollector.stop();
+      if (playerObj.collectors.currentInterface) {
+        playerObj.collectors.currentInterface.stop();
       }
 
-      playerObj.collectors.currentInterfaceCollector = createCollector(
+      playerObj.collectors.currentInterface = createCollector(
         mainInterfaceMessage,
         session,
         playerKey,

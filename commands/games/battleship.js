@@ -5,7 +5,6 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  TextDisplayBuilder,
 } = require('discord.js');
 const {
   isInviteValid,
@@ -17,26 +16,7 @@ const {
   sessions,
 } = require('../../utils/battleship/sessionManagement.js');
 const { startBoardSetup } = require('../../utils/battleship/boardSetup.js');
-
-// TODO:
-// 1. Create categories ✅
-// 2. Delete categories ✅
-// 3. Create text channels ✅
-// 4. Send private DMs to members ✅
-// 5. Send private DMs with buttons to members ✅
-// 6. Members reply to private DMs ✅
-// 7. Implement central sessions list. A new session object is create the second an invite is created.
-//    Handle cases where invitation is denied or not responded (just change the status, and maybe no need
-//    to remove the session) ✅
-// 8. Implement cancel invite ✅
-// 9. Implement game initialization to enter the "board_setup" phase if the invitee accepts:
-//      a. Implement utility function to setup board: store players' id, board, guess boards, textchannelId ✅
-//      b. Implement text channel creation with permissions for respective players and redirect players to
-//         respective channels if possible. Or at least give them a link to their text channel. ✅
-//      c. Implement utility functions for players to set their board, methods include:
-//          i. Place ship (handles which orientation, valid ship placements)
-//         ii. Finish method to indicate that they're finished (handles if all ships are placed)
-//        iii. Maybe a remove ship method to undo a ship placement.
+const { TIMEOUT_INVITE } = require('../../utils/battleship/constants.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -204,7 +184,7 @@ module.exports = {
         // Create collector for the DM message
         const collector = dmMessage.createMessageComponentCollector({
           filter: (i) => i.user.id === invitee.id,
-          time: 60_000, // 60 seconds to accept or deny
+          time: TIMEOUT_INVITE,
         });
 
         // Store collector reference in session for cleanup
@@ -225,7 +205,6 @@ module.exports = {
               });
 
               await sessionInit(interaction, session, inviter, invitee);
-              console.log(sessions);
 
               // Start the board setup phase
               await startBoardSetup(interaction, session);
@@ -267,7 +246,6 @@ module.exports = {
           // Handle timeout if invite is still pending
           if (reason === 'time' && session.status === 'invite_pending') {
             expireSession(session);
-            console.log(sessions);
 
             // Create disabled buttons
             const disabledRow = new ActionRowBuilder().addComponents(
@@ -308,6 +286,7 @@ module.exports = {
     } else if (subcommand === 'invite-cancel') {
       const inviter = interaction.user;
       const pendingInviteSession = sessions.find(
+        // The inviter is always p1 to the pov of the current player
         (session) => session.p1.id === inviter.id && session.status === 'invite_pending'
       );
 

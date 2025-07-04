@@ -218,7 +218,6 @@ async function sendAttackerUpdate(interaction, session, attackerKey, move) {
     position: { row, column },
     result,
     shipHit: shipHitId,
-    // shipSunk,
     remainingShips,
   } = move;
 
@@ -249,10 +248,8 @@ async function sendAttackerUpdate(interaction, session, attackerKey, move) {
   });
 }
 
-async function sendDefenderUpdate(interaction, session, defenderKey, move) {
-  // Note that interaction is actually the attacker's interaction
-
-  const defenderChannel = await interaction.client.channels.fetch(
+async function sendDefenderUpdate(attackerInteraction, session, defenderKey, move) {
+  const defenderChannel = await attackerInteraction.client.channels.fetch(
     session[defenderKey].textChannelId
   );
 
@@ -260,7 +257,6 @@ async function sendDefenderUpdate(interaction, session, defenderKey, move) {
     position: { row, column },
     result,
     shipHit: shipHitId,
-    // shipSunk,
     remainingShips,
   } = move;
 

@@ -40,7 +40,7 @@ function generateMainInterface(session, playerKey) {
     .setCustomId('remove_ship_button')
     .setLabel('Remove Ship')
     .setEmoji('❌')
-    .setStyle(ButtonStyle.Primary);
+    .setStyle(ButtonStyle.Secondary);
 
   const actionRow = new ActionRowBuilder().addComponents(placeShipButton, removeShipButton);
 

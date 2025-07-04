@@ -19,7 +19,6 @@ function createCollector(message, session, playerKey, onCollect) {
         delete playerObj.collectors[key];
       }
     });
-    console.log(`Collector ended: ${reason}`);
   });
 
   return collector;

@@ -378,14 +378,19 @@ async function handleOnCollect(interaction, session, playerKey) {
   const { currentInterface } = session[playerKey].boardSetup;
 
   resetIdleTimer(interaction.channel, session, playerKey);
-  if (currentInterface === 'main') {
-    console.log("Nigga i'm at main");
-    await handleMainInterfaceClick(interaction, session, playerKey);
-  } else if (currentInterface === 'placing') {
-    console.log("Nigga i'm at placing");
-    await handlePlacingInterfaceClick(interaction, session, playerKey);
-  } else if (currentInterface === 'removing') {
-    await handleRemovingInterfaceClick(interaction, session, playerKey);
+  switch (currentInterface) {
+    case 'main':
+      await handleMainInterfaceClick(interaction, session, playerKey);
+      break;
+    case 'placing':
+      await handlePlacingInterfaceClick(interaction, session, playerKey);
+      break;
+    case 'removing':
+      await handleRemovingInterfaceClick(interaction, session, playerKey);
+      break;
+    default:
+      console.log(`Invalid currentInterface ${currentInterface}`);
+      break;
   }
 }
 
@@ -416,13 +421,12 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           handleOnCollect
         );
       } else {
-        console.log('PLACE SHIP BABY');
         boardSetup.currentInterface = 'placing';
-        console.log(`currentInterface is now: ${boardSetup.currentInterface}`);
+
         await startPlacingFlow(interaction, session, playerKey);
       }
-
       break;
+
     case 'remove_ship_button':
       const shipsAlreadyPlaced = ships.filter((ship) => ship.placed);
 
@@ -445,12 +449,11 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           handleOnCollect
         );
       } else {
-        console.log('REMOVING SHIPS BABY!');
         boardSetup.currentInterface = 'removing';
         await startRemovingFlow(interaction, session, playerKey);
       }
-
       break;
+
     case 'finish_setup_button':
       // Clear boardSetup and stop idle timer
       stopIdleTimer(session, playerKey);
@@ -459,15 +462,14 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
       // Mark player as ready
       const opponentKey = playerKey === 'p1' ? 'p2' : 'p1';
       session[playerKey].boardSetup.hasFinishedSetup = true;
-      console.log('session[opponentKey]');
-      console.log(session[opponentKey]);
+
       const isOpponentReady = session[opponentKey].boardSetup.hasFinishedSetup;
 
       if (!isOpponentReady) {
         // First player to finish setup - waiting for opponent
         const { id: opponentId } = session[opponentKey];
 
-        // Tell user to wait for their opponent
+        // Tell player to wait for their opponent
         const finishSetupTextDisplay = new TextDisplayBuilder().setContent(
           `# You have finished setting up your board! 😆\nPlease wait for <@${opponentId}> to finish setting up their board!`
         );
@@ -476,8 +478,14 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
           flags: MessageFlags.IsComponentsV2,
         });
 
-        console.log(`THIS NIGGA IS READY TO PLAY!!!!!! ${playerKey}`);
-        console.log(session);
+        // Tell opponent that the current player is ready
+        const opponentChannel = await interaction.client.channels.fetch(
+          session[opponentKey].textChannelId
+        );
+        const playerId = session[playerKey].id;
+        await opponentChannel.send(
+          `Your oponent <@${playerId}> has finished setting up their board! 😁`
+        );
       } else {
         // Their opponent has finished setting up their board first
 
@@ -508,21 +516,16 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
         // Remove references of boardSetup
         session[playerKey].boardSetup = null;
         session[opponentKey].boardSetup = null;
-
-        console.log(`BOTH NIGGAS READY TO PLAY!!!!!! ${playerKey}`);
-        console.log(session);
       }
-
       break;
+
     default:
-      // For future custom ids
-      console.log(`nah wtf is this custom id? ${interaction.customId}`);
+      console.log(`Invalid customId: ${interaction.customId}`);
       break;
   }
 }
 
 async function handlePlacingInterfaceClick(interaction, session, playerKey) {
-  console.log(interaction.customId);
   const { boardSetup } = session[playerKey];
 
   switch (interaction.customId) {
@@ -575,8 +578,6 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
       boardSetup.selectedColumn = null;
       boardSetup.currentInterface = 'main';
 
-      console.log("in handle placing interface(), at 'confirm_place_ship_button'");
-
       await interaction.reply('ship placed ahh');
       const mainInterfaceMessage = await interaction.channel.send({
         components: generateMainInterface(session, playerKey),
@@ -599,11 +600,9 @@ async function handlePlacingInterfaceClick(interaction, session, playerKey) {
       );
       break;
     default:
-      console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);
+      console.log(`Invalid customId: ${interaction.customId}`);
       break;
   }
-
-  console.log(boardSetup);
 }
 
 async function handleRemovingInterfaceClick(interaction, session, playerKey) {
@@ -660,7 +659,7 @@ async function handleRemovingInterfaceClick(interaction, session, playerKey) {
       break;
 
     default:
-      console.log(`Nahh, wtf is this interaction.customId: ${interaction.customId}`);
+      console.log(`Invalid customId: ${interaction.customId}`);
       break;
   }
 }

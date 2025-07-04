@@ -310,9 +310,6 @@ async function handlePlayerTimeout(channel, session, playerKey) {
 
   // Make channels view only
   await sessionChannelsViewOnly(session, channel.client);
-
-  console.log('FROM handlePlayerTimeout() NIGGA');
-  console.log(session);
 }
 
 module.exports = {

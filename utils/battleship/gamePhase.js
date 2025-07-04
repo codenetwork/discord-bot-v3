@@ -60,7 +60,6 @@ function makeMove(session) {
 
   // Check if for some reason already guessed
   if (attacker.guesses[rowIdx][colIdx] !== GUESS.UNGUESSED_ID) {
-    console.log("NAH NIGGA THIS AIN'T SUPPOSED TO HAPPEN");
     return;
   }
 
@@ -172,11 +171,9 @@ async function sendMoveFeedback(interaction, session, playerKey) {
   const colIdx = selectedColumn - 1;
   const isMoveValid = guesses[rowIdx][colIdx] === GUESS.UNGUESSED_ID;
 
-  console.log('BEFORE ISMOVEVALIE');
   if (isMoveValid) {
-    console.log('NAH NIGGA THE MOVE IS VALID!!!!');
     const confirmGuessTextDisplay = new TextDisplayBuilder().setContent(
-      `Confirm guess '${selectedRow}${selectedColumn}'?`
+      `Confirm guess **${selectedRow}${selectedColumn}**?`
     );
 
     const confirmButton = new ButtonBuilder()
@@ -335,7 +332,6 @@ async function handleOnCollect(interaction, session, playerKey) {
       const selectedRow = interaction.values[0];
       gamePhase.selectedRow = selectedRow;
 
-      console.log(gamePhase);
       await sendMoveFeedback(interaction, session, playerKey);
       break;
 
@@ -344,14 +340,11 @@ async function handleOnCollect(interaction, session, playerKey) {
       const selectedColumn = interaction.values[0];
       gamePhase.selectedColumn = selectedColumn;
 
-      console.log(gamePhase);
       await sendMoveFeedback(interaction, session, playerKey);
       break;
 
     case 'confirm_guess_button':
       const move = makeMove(session);
-      console.log('THE MOVE THAT WAS MADE!');
-      console.log(move);
 
       const attackerKey = playerKey;
       const defenderKey = playerKey === 'p1' ? 'p2' : 'p1';
@@ -396,7 +389,7 @@ async function handleOnCollect(interaction, session, playerKey) {
       break;
 
     default:
-      console.log(`nah wtf is this customid ${interaction.customId}`);
+      console.log(`Invalid customid ${interaction.customId}`);
   }
 }
 
@@ -406,8 +399,8 @@ async function startGamePhase(interaction, session) {
   const p1Channel = await interaction.client.channels.fetch(session.p1.textChannelId);
   const p2Channel = await interaction.client.channels.fetch(session.p2.textChannelId);
 
-  await p1Channel.send('LET THE GAMES BEGIN! NIGGA!!!!!');
-  await p2Channel.send('LET THE GAMES BEGIN! NIGGA!!!!!');
+  await p1Channel.send('Battleship starting...');
+  await p2Channel.send('Battleship starting...');
 
   createGamePhaseInSession(session);
 

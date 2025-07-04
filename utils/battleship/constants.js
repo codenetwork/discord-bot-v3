@@ -1,10 +1,11 @@
-const BOARD_WIDTH = 8;
-const BOARD_HEIGHT = 8;
+const BOARD_WIDTH = 5;
+const BOARD_HEIGHT = 5;
 
 const SEA = 0;
 const SEA_ICON = ' ';
 
-const TIMEOUT_TIME = 300_000; // 5 minutes
+const TIMEOUT_IDLE = 300_000; // 5 minutes
+const TIMEOUT_INVITE = 60_000; // 1 minute
 
 const SHIPS = [
   {
@@ -63,7 +64,8 @@ const MOVE_RESULT = {
 module.exports = {
   BOARD_HEIGHT,
   BOARD_WIDTH,
-  TIMEOUT_TIME,
+  TIMEOUT_IDLE,
+  TIMEOUT_INVITE,
   SEA,
   SEA_ICON,
   SHIPS,

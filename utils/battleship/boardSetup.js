@@ -453,15 +453,18 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
       break;
     case 'finish_setup_button':
       // Clear boardSetup and stop idle timer
-      session[playerKey].boardSetup = null;
       stopIdleTimer(session, playerKey);
+      // session[playerKey].boardSetup = null;
 
+      // Mark player as ready
       const opponentKey = playerKey === 'p1' ? 'p2' : 'p1';
+      session[playerKey].boardSetup.hasFinishedSetup = true;
+      console.log('session[opponentKey]');
+      console.log(session[opponentKey]);
+      const isOpponentReady = session[opponentKey].boardSetup.hasFinishedSetup;
 
-      // Player finishes setting up their board before their opponent
-      if (session.status === 'board_setup') {
-        session.status = `board_setup_${playerKey}_ready`;
-
+      if (!isOpponentReady) {
+        // First player to finish setup - waiting for opponent
         const { id: opponentId } = session[opponentKey];
 
         // Tell user to wait for their opponent
@@ -493,7 +496,7 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
         );
         const { id: userId } = session[playerKey];
         const userFinishedSetupTextDisplay = new TextDisplayBuilder().setContent(
-          `# Hello again!\n <@${userId}> has finished setting up their board!`
+          `# Your opponent is ready! 😛\n <@${userId}> has finished setting up their board!`
         );
         await opponentChannel.send({
           components: [userFinishedSetupTextDisplay],
@@ -501,6 +504,10 @@ async function handleMainInterfaceClick(interaction, session, playerKey) {
         });
 
         await startGamePhase(interaction, session);
+
+        // Remove references of boardSetup
+        session[playerKey].boardSetup = null;
+        session[opponentKey].boardSetup = null;
 
         console.log(`BOTH NIGGAS READY TO PLAY!!!!!! ${playerKey}`);
         console.log(session);

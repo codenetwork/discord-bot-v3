@@ -103,6 +103,10 @@ function isPlacementValid(session, playerKey) {
 }
 
 function generateShipPlacementBoard(session, playerKey) {
+  if (!isPlacementValid(session, playerKey)) {
+    return;
+  }
+
   const { board, boardSetup } = session[playerKey];
   const { selectedShip, selectedOrientation, selectedRow, selectedColumn } = boardSetup;
 

@@ -7,7 +7,9 @@ async function isInviteValid(interaction, inviter, invitee) {
   // Check if the inviter is already in an active session
   const activeStatuses = ['invite_pending', 'board_setup', 'game_phase'];
   const inviterActiveSession = sessions.find(
-    (session) => session.p1.id === inviter.id && activeStatuses.includes(session.status)
+    (session) =>
+      (session.p1.id === inviter.id || session.p2.id === inviter.id) &&
+      activeStatuses.includes(session.status)
   );
   if (inviterActiveSession) {
     await interaction.reply({
@@ -81,6 +83,7 @@ function newPlayerObj(player) {
       placementFeedbackMessageId: null,
       selectedRemoveShip: null,
       removalFeedbackMessageId: null,
+      hasFinishedSetup: false,
     },
     collectors: {},
   };

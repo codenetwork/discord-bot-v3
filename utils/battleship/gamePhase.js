@@ -6,6 +6,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ContainerBuilder,
 } = require('discord.js');
 const { createCollector } = require('./interactionHandlers');
 const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH, MOVE_RESULT, SHIPS } = require('./constants');
@@ -13,7 +14,6 @@ const {
   startIdleTimer,
   createGamePhaseInSession,
   resetIdleTimer,
-  finishSession,
   sessionChannelsViewOnly,
   stopIdleTimer,
   winnerSession,
@@ -222,28 +222,50 @@ async function sendAttackerUpdate(interaction, session, attackerKey, move) {
   } = move;
 
   let resultText = '';
+  let resultEmoji = '';
+  let accentColor = 0x808080; // Default gray
+
   const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
 
   switch (result) {
     case MOVE_RESULT.HIT:
-      resultText = `# Hit! 💥\nYou hit their ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`;
+      resultText = `You hit their ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**`;
+      resultEmoji = '💥';
+      accentColor = 0xff9500; // Orange for hit
       break;
     case MOVE_RESULT.MISS:
-      resultText = `# Miss! 🚫\nYou hit nothing at **${row}${column}**`;
+      resultText = `You hit nothing at **${row}${column}**`;
+      resultEmoji = '🚫';
+      accentColor = 0x6c757d; // Gray for miss
       break;
     case MOVE_RESULT.SUNK:
-      resultText = `# Sunken Ship! 🌊\nYou've sunken their ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nThere are ${remainingShips} remaining ships.`;
+      resultText = `You've sunken their ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**\n\n**${remainingShips}** ships remaining`;
+      resultEmoji = '🌊';
+      accentColor = 0x198754; // Green for sunk
       break;
   }
 
   const defenderKey = attackerKey === 'p1' ? 'p2' : 'p1';
-  resultText +=
-    '\nYour guess board:' +
-    guessesRepresentation(session[attackerKey].guesses, session[defenderKey].board);
-  const resultTextDisplay = new TextDisplayBuilder().setContent(resultText);
+  const guessBoard = guessesRepresentation(
+    session[attackerKey].guesses,
+    session[defenderKey].board
+  );
+
+  const updateContainer = new ContainerBuilder()
+    .setAccentColor(accentColor)
+    .addTextDisplayComponents((textDisplay) =>
+      textDisplay.setContent(
+        `# ${resultEmoji} ${result.charAt(0).toUpperCase() + result.slice(1)}!`
+      )
+    )
+    .addTextDisplayComponents((textDisplay) => textDisplay.setContent(resultText))
+    .addSeparatorComponents((separator) => separator)
+    .addTextDisplayComponents((textDisplay) =>
+      textDisplay.setContent(`**Your Guess Board:**${guessBoard}`)
+    );
 
   await interaction.reply({
-    components: [resultTextDisplay],
+    components: [updateContainer],
     flags: MessageFlags.IsComponentsV2,
   });
 }
@@ -261,28 +283,56 @@ async function sendDefenderUpdate(attackerInteraction, session, defenderKey, mov
   } = move;
 
   let resultText = '';
+  let resultEmoji = '';
+  let accentColor = 0x808080; // Default gray
+
   const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
 
   switch (result) {
     case MOVE_RESULT.HIT:
-      resultText = `# Your ship was Hit! 💥\nThey hit your ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**`;
+      resultText = `They hit your ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**`;
+      resultEmoji = '💥';
+      accentColor = 0xdc3545; // Red for defender being hit
       break;
     case MOVE_RESULT.MISS:
-      resultText = `# They Missed! 🚫\nThey hit nothing at **${row}${column}**`;
+      resultText = `They hit nothing at **${row}${column}**`;
+      resultEmoji = '🚫';
+      accentColor = 0x198754; // Green for defender (they're safe)
       break;
     case MOVE_RESULT.SUNK:
-      resultText = `# Sunken Ship! 😭\nThey've sunken your ship ${shipHit.emoji} ${shipHit.name} (length ${shipHit.length}) at **${row}${column}**\nYou have ${remainingShips} remaining ships.`;
+      resultText = `They've sunken your ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**\n\n**${remainingShips}** of your ships remaining`;
+      resultEmoji = '😭';
+      accentColor = 0x8c0000; // Dark red for sunk ship
       break;
   }
 
   const attackerKey = defenderKey === 'p1' ? 'p2' : 'p1';
-  resultText +=
-    '\nYour board:\n' +
-    boardWithDamageRepresentation(session[defenderKey].board, session[attackerKey].guesses);
-  const resultTextDisplay = new TextDisplayBuilder().setContent(resultText);
+  const boardWithDamage = boardWithDamageRepresentation(
+    session[defenderKey].board,
+    session[attackerKey].guesses
+  );
+
+  const updateContainer = new ContainerBuilder()
+    .setAccentColor(accentColor)
+    .addTextDisplayComponents((textDisplay) =>
+      textDisplay.setContent(
+        `# ${resultEmoji} ${
+          result === MOVE_RESULT.MISS
+            ? 'They Missed!'
+            : result === MOVE_RESULT.HIT
+            ? 'Your Ship Was Hit!'
+            : 'Sunken Ship!'
+        }`
+      )
+    )
+    .addTextDisplayComponents((textDisplay) => textDisplay.setContent(resultText))
+    .addSeparatorComponents((separator) => separator)
+    .addTextDisplayComponents((textDisplay) =>
+      textDisplay.setContent(`**Your Board:**${boardWithDamage}`)
+    );
 
   await defenderChannel.send({
-    components: [resultTextDisplay],
+    components: [updateContainer],
     flags: MessageFlags.IsComponentsV2,
   });
 }

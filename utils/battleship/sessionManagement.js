@@ -7,9 +7,7 @@ async function isInviteValid(interaction, inviter, invitee) {
   // Check if the inviter is already in an active session
   const activeStatuses = ['invite_pending', 'board_setup', 'game_phase'];
   const inviterActiveSession = sessions.find(
-    (session) =>
-      (session.p1.id === inviter.id || session.p2.id === inviter.id) &&
-      activeStatuses.includes(session.status)
+    (session) => session.p1.id === inviter.id && activeStatuses.includes(session.status)
   );
   if (inviterActiveSession) {
     await interaction.reply({
@@ -90,15 +88,17 @@ function newPlayerObj(player) {
 }
 
 function createSession(p1, p2) {
+  const id = sessions.length;
   const newSession = {
-    id: sessions.length,
+    id,
     status: 'invite_pending',
     p1: newPlayerObj(p1),
     p2: newPlayerObj(p2),
     inviteTimestamp: new Date(),
-    // inviteAcceptedTimestamp: null,
+    inviteAcceptedTimestamp: null,
   };
   sessions.push(newSession);
+  console.log(`Session ${id} - Invite Sent`);
   return newSession;
 }
 
@@ -113,7 +113,6 @@ function createGamePhaseInSession(session) {
 }
 
 async function sessionInit(interaction, session, p1, p2) {
-  console.log('session init!');
   // Find Battleship category
   let battleshipCategory = interaction.guild.channels.cache.find(
     (channel) => channel.name === 'Battleship' && channel.type === ChannelType.GuildCategory
@@ -177,7 +176,6 @@ async function sessionInit(interaction, session, p1, p2) {
     ],
   });
 
-  console.log('woah!');
   // Mark the sessions' text channels
   session.p1.textChannelId = p1Channel.id;
   session.p2.textChannelId = p2Channel.id;
@@ -200,32 +198,25 @@ async function sessionInit(interaction, session, p1, p2) {
   // Change status
   session.status = 'board_setup';
 
-  console.log('New Session created!');
-  console.log(session);
+  console.log(`Session ${session.id} - Invite Accepted`);
 }
 
 function denySession(session) {
   session.inviteDeniedTimestamp = new Date();
   session.status = 'invite_denied';
-
-  console.log('Session denied!');
-  console.log(session);
+  console.log(`Session ${session.id} - Invite Denied`);
 }
 
 function expireSession(session) {
   session.inviteExpiredTimestamp = new Date();
   session.status = 'invite_expired';
-
-  console.log('Session expired!');
-  console.log(session);
+  console.log(`Session ${session.id} - Invite Expired`);
 }
 
 function cancelSession(session) {
   session.inviteCancelledTimestamp = new Date();
   session.status = 'invite_cancelled';
-
-  console.log('Session cancelled!');
-  console.log(session);
+  console.log(`Session ${session.id} - Invite Cancelled`);
 }
 
 function startIdleTimer(channel, session, playerKey) {
@@ -274,6 +265,11 @@ function finishSession(session, status = null) {
   }
 }
 
+function winnerSession(session, playerKey) {
+  finishSession(session, `${playerKey}_win`);
+  console.log(`Session ${session.id} - ${playerKey.toUpperCase()} Win`);
+}
+
 async function sessionChannelsViewOnly(session, client) {
   const p1Channel = await client.channels.fetch(session.p1.textChannelId);
   const p2Channel = await client.channels.fetch(session.p2.textChannelId);
@@ -310,6 +306,8 @@ async function handlePlayerTimeout(channel, session, playerKey) {
 
   // Make channels view only
   await sessionChannelsViewOnly(session, channel.client);
+
+  console.log(`Session ${session.id} - Timed out ${playerKey}`);
 }
 
 module.exports = {
@@ -325,5 +323,6 @@ module.exports = {
   stopIdleTimer,
   createGamePhaseInSession,
   finishSession,
+  winnerSession,
   sessionChannelsViewOnly,
 };

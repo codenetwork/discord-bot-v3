@@ -16,6 +16,7 @@ const {
   finishSession,
   sessionChannelsViewOnly,
   stopIdleTimer,
+  winnerSession,
 } = require('./sessionManagement');
 const {
   boardRepresentation,
@@ -379,8 +380,8 @@ async function handleOnCollect(interaction, session, playerKey) {
         // Tell both players who won (and lost)
         await announceWinner(session, p1Channel, p2Channel, attackerKey);
 
-        // Mark session as finished
-        finishSession(session, `${attackerKey}_win`);
+        // Finishes the session and marks winner
+        winnerSession(session, attackerKey);
 
         // Make both channels view only and everyone else in the server able to see
         await sessionChannelsViewOnly(session, interaction.client);

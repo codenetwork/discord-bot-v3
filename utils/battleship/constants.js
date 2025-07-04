@@ -1,5 +1,5 @@
-const BOARD_WIDTH = 5;
-const BOARD_HEIGHT = 5;
+const BOARD_WIDTH = 8;
+const BOARD_HEIGHT = 8;
 
 const SEA = 0;
 const SEA_ICON = ' ';
@@ -52,7 +52,7 @@ const GUESS = {
   HIT_ICON: 'O',
   MISS_ID: 2,
   MISS_ICON: 'X',
-  SUNK_SHIP_ICON: '#',
+  SUNK_SHIP_ICON: '@',
 };
 
 const MOVE_RESULT = {

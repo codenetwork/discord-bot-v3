@@ -9,7 +9,15 @@ const {
   ContainerBuilder,
 } = require('discord.js');
 const { createCollector } = require('./interactionHandlers');
-const { SEA, GUESS, BOARD_HEIGHT, BOARD_WIDTH, MOVE_RESULT, SHIPS } = require('./constants');
+const {
+  SEA,
+  GUESS,
+  BOARD_HEIGHT,
+  BOARD_WIDTH,
+  MOVE_RESULT,
+  SHIPS,
+  ACCENT_COLOR,
+} = require('./constants');
 const {
   startIdleTimer,
   createGamePhaseInSession,
@@ -222,26 +230,22 @@ async function sendAttackerUpdate(interaction, session, attackerKey, move) {
   } = move;
 
   let resultText = '';
-  let resultEmoji = '';
-  let accentColor = 0x808080; // Default gray
+  let accentColor = null;
 
   const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
 
   switch (result) {
     case MOVE_RESULT.HIT:
-      resultText = `You hit their ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**`;
-      resultEmoji = '💥';
-      accentColor = 0xff9500; // Orange for hit
+      resultText = `# 💥 Hit!\nYou hit their ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**`;
+      accentColor = ACCENT_COLOR.ORANGE;
       break;
     case MOVE_RESULT.MISS:
-      resultText = `You hit nothing at **${row}${column}**`;
-      resultEmoji = '🚫';
-      accentColor = 0x6c757d; // Gray for miss
+      resultText = `# 🚫 Miss!\nYou hit nothing at **${row}${column}**`;
+      accentColor = ACCENT_COLOR.GRAY;
       break;
     case MOVE_RESULT.SUNK:
-      resultText = `You've sunken their ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**\n\n**${remainingShips}** ships remaining`;
-      resultEmoji = '🌊';
-      accentColor = 0x198754; // Green for sunk
+      resultText = `# 🌊 Sunk!\nYou've sunken their ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**\n\n**${remainingShips}** ships remaining`;
+      accentColor = ACCENT_COLOR.GREEN;
       break;
   }
 
@@ -253,11 +257,6 @@ async function sendAttackerUpdate(interaction, session, attackerKey, move) {
 
   const updateContainer = new ContainerBuilder()
     .setAccentColor(accentColor)
-    .addTextDisplayComponents((textDisplay) =>
-      textDisplay.setContent(
-        `# ${resultEmoji} ${result.charAt(0).toUpperCase() + result.slice(1)}!`
-      )
-    )
     .addTextDisplayComponents((textDisplay) => textDisplay.setContent(resultText))
     .addSeparatorComponents((separator) => separator)
     .addTextDisplayComponents((textDisplay) =>
@@ -283,26 +282,22 @@ async function sendDefenderUpdate(attackerInteraction, session, defenderKey, mov
   } = move;
 
   let resultText = '';
-  let resultEmoji = '';
-  let accentColor = 0x808080; // Default gray
+  let accentColor = null;
 
   const shipHit = SHIPS.find((ship) => ship.id === shipHitId);
 
   switch (result) {
     case MOVE_RESULT.HIT:
-      resultText = `They hit your ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**`;
-      resultEmoji = '💥';
-      accentColor = 0xdc3545; // Red for defender being hit
+      resultText = `# 💥 Your ship was hit!\nThey hit your ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**`;
+      accentColor = ACCENT_COLOR.RED;
       break;
     case MOVE_RESULT.MISS:
-      resultText = `They hit nothing at **${row}${column}**`;
-      resultEmoji = '🚫';
-      accentColor = 0x198754; // Green for defender (they're safe)
+      resultText = `# 🚫 They missed!\nThey hit nothing at **${row}${column}**`;
+      accentColor = ACCENT_COLOR.GREEN;
       break;
     case MOVE_RESULT.SUNK:
-      resultText = `They've sunken your ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**\n\n**${remainingShips}** of your ships remaining`;
-      resultEmoji = '😭';
-      accentColor = 0x8c0000; // Dark red for sunk ship
+      resultText = `# 😭 Sunken Ship!\nThey've sunken your ${shipHit.emoji} **${shipHit.name}** (length ${shipHit.length}) at **${row}${column}**\n\n**${remainingShips}** of your ships remaining`;
+      accentColor = ACCENT_COLOR.DARK_RED;
       break;
   }
 
@@ -314,17 +309,6 @@ async function sendDefenderUpdate(attackerInteraction, session, defenderKey, mov
 
   const updateContainer = new ContainerBuilder()
     .setAccentColor(accentColor)
-    .addTextDisplayComponents((textDisplay) =>
-      textDisplay.setContent(
-        `# ${resultEmoji} ${
-          result === MOVE_RESULT.MISS
-            ? 'They Missed!'
-            : result === MOVE_RESULT.HIT
-            ? 'Your Ship Was Hit!'
-            : 'Sunken Ship!'
-        }`
-      )
-    )
     .addTextDisplayComponents((textDisplay) => textDisplay.setContent(resultText))
     .addSeparatorComponents((separator) => separator)
     .addTextDisplayComponents((textDisplay) =>

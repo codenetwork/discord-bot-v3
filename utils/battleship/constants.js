@@ -60,6 +60,13 @@ const MOVE_RESULT = {
   MISS: 'miss',
   SUNK: 'sunk',
 };
+const ACCENT_COLOR = {
+  RED: 0xdc3545,
+  ORANGE: 0xff9500,
+  GREEN: 0x198754,
+  GRAY: 0x6c757d,
+  DARK_RED: 0x8c0000,
+};
 
 module.exports = {
   BOARD_HEIGHT,
@@ -71,4 +78,5 @@ module.exports = {
   SHIPS,
   GUESS,
   MOVE_RESULT,
+  ACCENT_COLOR,
 };

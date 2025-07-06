@@ -1,7 +1,21 @@
-//*Requires "PRESENCE INTENT" in the Discord Developer Portal to be enabled for full functionality.
+/**
+ * @name: list.js
+ * @description: Discord slash command that prints all the server members with a specific role.
+ * @author: Anthony Choi. Assistance provided by Yiming He.
+ * 
+ * NOTE: Requires "PRESENCE INTENT" in the Discord Developer Portal to be enabled for full functionality.
+ */
 
-const { SlashCommandBuilder } = require("discord.js");
 
+
+// VARIABLES
+const { SlashCommandBuilder, MessageFlags } = require("discord.js");
+let memberArray = [];
+let role;
+let memberPersons;
+
+
+// COMMAND BUILDER
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName("list")
@@ -12,25 +26,26 @@ module.exports = {
 				.setAutocomplete(true)
 				.setRequired(true)),
 	
-	async autocomplete(interaction) {
+	async autocomplete(interaction)
+	{
 		const focusedValue = interaction.options.getFocused().toLowerCase();
-
-		//Get roles from server.
+		
+		//Gets roles from server.
 		const choices = Array.from(interaction.guild.roles.cache.map(m=>m.name));
 
-		//Setup role list for auto-complete.
+		//Sets up role list for auto-complete.
 		const filtered = choices.filter(choice => choice.toLowerCase().startsWith(focusedValue));
-		await interaction.respond(
-			filtered.map(choice => ({ name: choice, value: choice })),
-		);
+		await interaction.respond(filtered.map(choice => (
+			{ 
+				name: choice, 
+				value: choice 
+			})));
 	},
 
-	async execute(interaction) {
-		//VARIABLES
-		let memberArray = [];
-		let stringLength;
-		let role = interaction.options.get("role");
-		let memberPersons = "Members with the \"" + role.value + "\" role: ";
+	async execute(interaction)
+	{
+		role = interaction.options.get("role");
+		memberPersons = `Members with the ${role.value} role: `;
 
 		//Enables auto-complete of roles in command.
 		memberArray = interaction.guild.roles.cache.find(r=>r.name.toLowerCase() == role.value.toString().toLowerCase()).members.map(m=>m.displayName);
@@ -55,9 +70,9 @@ module.exports = {
 		}
 
 		await interaction.reply(
-			{
-				content: memberPersons,
-				ephemeral: true
-			});
+		{
+			content: memberPersons,
+			flags: MessageFlags.Ephemeral
+		});
 	},
 };

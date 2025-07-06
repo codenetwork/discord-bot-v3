@@ -63,7 +63,10 @@ function generatePlacingInterface(session, playerKey) {
 
   // Create title text display
   const titleTextDisplay = new TextDisplayBuilder().setContent(
-    '# Place a ship!\nWhat your board currently looks like:'
+    '# Place a ship!\n' +
+      'Select your ship, orientation, row, and column below.\n' +
+      '✅ **A confirmation button will appear once all options are selected.**\n' +
+      'What your board currently looks like:'
   );
 
   // Create board text display
@@ -92,8 +95,14 @@ function generatePlacingInterface(session, playerKey) {
     .setCustomId('orientation_select_menu')
     .setPlaceholder('Select an orientation!')
     .addOptions(
-      new StringSelectMenuOptionBuilder().setLabel('Horizontal').setValue('Horizontal'),
-      new StringSelectMenuOptionBuilder().setLabel('Vertical').setValue('Vertical')
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Horizontal (→ Left to Right)')
+        .setDescription('Ship will extend to the right')
+        .setValue('Horizontal'),
+      new StringSelectMenuOptionBuilder()
+        .setLabel('Vertical (↓ Top to Bottom)')
+        .setDescription('Ship will extend downwards')
+        .setValue('Vertical')
     );
   const orientationActionRow = new ActionRowBuilder().addComponents(orientationSelectMenu);
 
@@ -224,9 +233,23 @@ async function sendPlacementFeedback(interaction, session, playerKey) {
       handleOnCollect
     );
   } else {
-    const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(
-      'Your placement selection is invalid, please change your selections!'
-    );
+    let errorMessage = 'Your placement selection is invalid!\n**Possible issues:**\n';
+
+    const { length: shipLength } = selectedShip;
+    const colIdx = selectedColumn - 1;
+    const rowIdx = selectedRow.charCodeAt(0) - 'A'.charCodeAt(0);
+
+    if (selectedOrientation === 'Horizontal' && colIdx + shipLength > BOARD_WIDTH) {
+      errorMessage += `• Ship extends beyond right edge (needs ${shipLength} spaces)\n`;
+    }
+    if (selectedOrientation === 'Vertical' && rowIdx + shipLength > BOARD_HEIGHT) {
+      errorMessage += `• Ship extends beyond bottom edge (needs ${shipLength} spaces)\n`;
+    }
+
+    // Check for overlaps...
+    errorMessage += '• Ship overlaps with existing ship\nPlease adjust your selections!';
+
+    const invalidPlacementTextDisplay = new TextDisplayBuilder().setContent(errorMessage);
 
     const invalidPlacementMessage = await interaction.followUp({
       components: [invalidPlacementTextDisplay],

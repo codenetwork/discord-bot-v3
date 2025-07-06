@@ -31,6 +31,7 @@ const {
   isShipSunk,
   guessesRepresentation,
   boardWithDamageRepresentation,
+  finalRevealBoardRepresentation,
 } = require('./boardUtils');
 
 function countRemainingShips(opponentBoard, guesses) {
@@ -321,7 +322,7 @@ async function sendDefenderUpdate(attackerInteraction, session, defenderKey, mov
   });
 }
 
-async function announceWinner(session, p1Channel, p2Channel, winnerKey, move) {
+async function announceWinner(session, p1Channel, p2Channel, winnerKey) {
   const isP1Winner = winnerKey === 'p1';
   const winner = session[winnerKey];
   const loserKey = isP1Winner ? 'p2' : 'p1';
@@ -329,17 +330,17 @@ async function announceWinner(session, p1Channel, p2Channel, winnerKey, move) {
   const winnerChannel = isP1Winner ? p1Channel : p2Channel;
   const loserChannel = isP1Winner ? p2Channel : p1Channel;
 
-  const { board: winnerBoard, id: winnerId } = winner;
-  const { board: loserBoard, id: loserId } = loser;
+  const { board: winnerBoard, guesses: winnerGuesses, id: winnerId } = winner;
+  const { board: loserBoard, guesses: loserGuesses, id: loserId } = loser;
 
-  const winnerBoardText = boardRepresentation(winnerBoard);
-  const loserBoardText = boardRepresentation(loserBoard);
+  const winnerActualBoard = finalRevealBoardRepresentation(winnerBoard, loserGuesses);
+  const loserActualBoard = finalRevealBoardRepresentation(loserBoard, winnerGuesses);
 
   const winnerTextDisplay = new TextDisplayBuilder().setContent(
-    `# You have won! 🥳🏆\nThis is <@${loserId}>'s board:\n${loserBoardText}`
+    `# You have won! 🥳🏆\nThis is <@${loserId}>'s board and your guesses:\n${loserActualBoard}`
   );
   const loserTextDisplay = new TextDisplayBuilder().setContent(
-    `# You have lost! 😞\nThis is <@${winnerId}>'s board:\n${winnerBoardText}`
+    `# You have lost! 😞\nThis is <@${winnerId}>'s board and your guesses:\n${winnerActualBoard}`
   );
 
   await winnerChannel.send({

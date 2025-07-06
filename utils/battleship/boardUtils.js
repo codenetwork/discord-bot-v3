@@ -333,6 +333,97 @@ function boardWithDamageRepresentation(board, opponentGuesses) {
   return parts.join('');
 }
 
+function finalRevealBoardRepresentation(opponentBoard, playerGuesses) {
+  const parts = ['```\n'];
+  const width = opponentBoard[0].length;
+  const height = opponentBoard.length;
+
+  // Column headers
+  parts.push('    ');
+  for (let i = 1; i <= width; i++) {
+    if (i < 10) {
+      parts.push(`${i}   `);
+    } else {
+      parts.push(`${i}  `);
+    }
+  }
+  parts.push('\n');
+
+  // Top border
+  parts.push('  ┌');
+  for (let i = 0; i < width; i++) {
+    parts.push('───');
+    if (i < width - 1) {
+      parts.push('┬');
+    }
+  }
+  parts.push('┐\n');
+
+  // Board rows
+  opponentBoard.forEach((row, idx) => {
+    const asciiValA = 'A'.charCodeAt(0);
+    const rowChar = String.fromCharCode(asciiValA + idx);
+
+    // Row content
+    parts.push(`${rowChar} │`);
+    row.forEach((cell, colIdx) => {
+      let icon;
+
+      // Check what the player guessed at this position
+      const guessState = playerGuesses[idx][colIdx];
+
+      if (guessState === GUESS.MISS_ID) {
+        // Player guessed here and missed - show the miss
+        icon = GUESS.MISS_ICON;
+      } else if (guessState === GUESS.HIT_ID) {
+        // Player guessed here and hit - show hit or sunk
+        const shipId = opponentBoard[idx][colIdx];
+        if (shipId !== SEA && isShipSunk(opponentBoard, playerGuesses, shipId)) {
+          icon = GUESS.SUNK_SHIP_ICON;
+        } else {
+          icon = GUESS.HIT_ICON;
+        }
+      } else {
+        // Player never guessed here - show the actual ship or sea
+        if (cell === SEA) {
+          icon = SEA_ICON;
+        } else {
+          // Show the actual ship that was here (revealed)
+          const ship = SHIPS.find((ship) => ship.id === cell);
+          icon = ship ? ship.icon : '?';
+        }
+      }
+
+      parts.push(` ${icon} │`);
+    });
+    parts.push('\n');
+
+    // Row separator (except for last row)
+    if (idx < height - 1) {
+      parts.push('  ├');
+      for (let i = 0; i < width; i++) {
+        parts.push('───');
+        if (i < width - 1) {
+          parts.push('┼');
+        }
+      }
+      parts.push('┤\n');
+    }
+  });
+
+  // Bottom border
+  parts.push('  └');
+  for (let i = 0; i < width; i++) {
+    parts.push('───');
+    if (i < width - 1) {
+      parts.push('┴');
+    }
+  }
+  parts.push('┘\n```');
+
+  return parts.join('');
+}
+
 module.exports = {
   boardRepresentation,
   isPlacementValid,
@@ -341,4 +432,5 @@ module.exports = {
   isShipSunk,
   guessesRepresentation,
   boardWithDamageRepresentation,
+  finalRevealBoardRepresentation,
 };

@@ -1,6 +1,5 @@
 const {
   SlashCommandBuilder,
-  ChannelType,
   MessageFlags,
   ActionRowBuilder,
   ButtonBuilder,
@@ -24,36 +23,6 @@ module.exports = {
     .setDescription('Manage the battleship game')
     .addSubcommand((subcommand) =>
       subcommand
-        .setName('createcategory')
-        .setDescription('Creates a new category given a name.')
-        .addStringOption((option) =>
-          option.setName('name').setDescription('Name of the category to create').setRequired(true)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName('deletecategory')
-        .setDescription('Deletes a category')
-        .addStringOption((option) =>
-          option
-            .setName('name')
-            .setDescription('Name of the category to be deleted.')
-            .setRequired(true)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
-        .setName('createtextchannel')
-        .setDescription('Creates a new text channel at category "Battleship".')
-        .addStringOption((option) =>
-          option
-            .setName('name')
-            .setDescription('Name of the text channel to be created.')
-            .setRequired(true)
-        )
-    )
-    .addSubcommand((subcommand) =>
-      subcommand
         .setName('invite')
         .setDescription('Invites another player to play')
         .addUserOption((option) =>
@@ -66,81 +35,7 @@ module.exports = {
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === 'createcategory') {
-      const categoryName = interaction.options.getString('name');
-
-      const existingCategory = interaction.guild.channels.cache.find(
-        (channel) => channel.name === categoryName && channel.type === ChannelType.GuildCategory
-      );
-
-      if (existingCategory) {
-        return await interaction.reply({
-          content: `Category "${categoryName}" already exists!`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-
-      try {
-        const newCategory = await interaction.guild.channels.create({
-          name: categoryName,
-          type: ChannelType.GuildCategory,
-        });
-        return await interaction.reply(`Category "${categoryName}" has been created!`);
-      } catch (error) {
-        interaction.reply({
-          content: `Failed to create category "${categoryName}" :(\n${error}`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-    } else if (subcommand === 'deletecategory') {
-      const categoryName = interaction.options.getString('name');
-
-      const existingCategory = interaction.guild.channels.cache.find(
-        (channel) => channel.name === categoryName && channel.type === ChannelType.GuildCategory
-      );
-
-      if (!existingCategory) {
-        return await interaction.reply({
-          content: `Category "${categoryName}" does not exist!`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-
-      try {
-        await existingCategory.delete();
-        return await interaction.reply(`Category "${categoryName}" has been deleted!`);
-      } catch (error) {
-        return await interaction.reply({
-          content: `Failed to delete "${categoryName}" :(`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-    } else if (subcommand === 'createtextchannel') {
-      const battleshipCategory = interaction.guild.channels.cache.find(
-        (channel) => channel.name === 'Battleship' && channel.type === ChannelType.GuildCategory
-      );
-
-      if (!battleshipCategory) {
-        return await interaction.reply({
-          content: `Category "Battleship" not found. Please create this category first.`,
-          ephemeral: MessageFlags.Ephemeral,
-        });
-      }
-
-      const textChannelName = interaction.options.getString('name');
-
-      try {
-        const newChannel = await interaction.guild.channels.create({
-          name: textChannelName,
-          type: ChannelType.GuildText,
-          parent: battleshipCategory.id,
-          // permissionOverwrites: [
-          //   id:
-          // ]
-        });
-        return await interaction.reply(`Text channel "${newChannel.name}" has been created!`);
-      } catch (error) {}
-    } else if (subcommand === 'invite') {
+    if (subcommand === 'invite') {
       const inviter = interaction.user;
       const invitee = interaction.options.getUser('player');
 
